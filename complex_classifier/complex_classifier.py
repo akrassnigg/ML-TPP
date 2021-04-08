@@ -34,10 +34,10 @@ model_timestamp = int(time.time())
 tb_logger = TensorBoardLogger(logdir, name='ml-tpp-classifier', version=model_timestamp)
 
 class RandomClasses(Dataset):
-    def __init__(self):
+    def __init__(self, data_dir):
 
-        self.data_X = np.load("random_test_data_classifier_x.npy", allow_pickle=True).astype('float32')
-        self.data_y = np.load("random_test_data_classifier_y.npy", allow_pickle=True).astype('int')
+        self.data_X = np.load(data_dir+"/random_test_data_classifier_x.npy", allow_pickle=True).astype('float32')
+        self.data_y = np.load(data_dir+"/random_test_data_classifier_y.npy", allow_pickle=True).astype('int')
 
     def __len__(self):
         num_of_data_points = len(self.data_X)
@@ -67,7 +67,7 @@ class DeepNet1(LightningModule):
                  test_batch_size: int = 2,
                  validation_portion: float = .2,
                  test_portion: float = .2,
-                 data_root: str = './datasets',
+                 data_root: str = './data',
                  num_data: int = 200,
                  num_workers: int = 4,
                  **kwargs
@@ -100,56 +100,38 @@ class DeepNet1(LightningModule):
         return x
 
     def training_step(self, batch, batch_idx):
-        """
-        Training step takes batch for training
-        """
-        # forward pass
+
         x, y = batch
         y_hat = self(x)
-        print("y: ", y)
-        print("y_hat: ", y_hat)
+        # print("y: ", y)
+        # print("y_hat: ", y_hat)
         
         loss = F.cross_entropy(y_hat, y)
-        tensorboard_logs = {'train_loss': loss}
-        return {'loss': loss, 'log': tensorboard_logs}
+        self.log('train_loss', loss, on_step=False, on_epoch=True)
+        return loss
 
     def validation_step(self, batch, batch_idx):
-        """
-        Same as training, just evaluates a little differently
-        """
+
         x, y = batch
         y_hat = self(x)
+        # print("y: ", y)
+        # print("y_hat: ", y_hat)
+        
         val_loss = F.cross_entropy(y_hat, y)
-        labels_hat = torch.argmax(y_hat, dim=1)
-        n_correct_pred = torch.sum(y == labels_hat).item()
-        return {'val_loss': val_loss, "n_correct_pred": n_correct_pred, "n_pred": len(x)}
+        self.log('val_loss', val_loss, on_step=False, on_epoch=True, prog_bar=True)
+        return val_loss
 
     def test_step(self, batch, batch_idx):
-        """
-        Same as training, just evaluates a little differently
-        """
+
         x, y = batch
         y_hat = self(x)
+        # print("y: ", y)
+        # print("y_hat: ", y_hat)
+        
         test_loss = F.cross_entropy(y_hat, y)
-        labels_hat = torch.argmax(y_hat, dim=1)
-        n_correct_pred = torch.sum(y == labels_hat).item()
-        return {'test_loss': test_loss, "n_correct_pred": n_correct_pred, "n_pred": len(x)}
+        self.log('test_loss', test_loss, on_step=False, on_epoch=True)
+        return test_loss
 
-    def validation_epoch_end(self, outputs):
-        """
-        Called at the end of validation to aggregate outputs.
-        :param outputs: list of individual outputs of each validation step.
-        """
-        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        val_acc = sum([x['n_correct_pred'] for x in outputs]) / sum(x['n_pred'] for x in outputs)
-        tensorboard_logs = {'val_loss': avg_loss, 'val_acc': val_acc}
-        return {'val_loss': avg_loss, 'log': tensorboard_logs}
-
-    def test_epoch_end(self, outputs):
-        avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-        test_acc = sum([x['n_correct_pred'] for x in outputs]) / sum(x['n_pred'] for x in outputs)
-        tensorboard_logs = {'test_loss': avg_loss, 'test_acc': test_acc}
-        return {'test_loss': avg_loss, 'log': tensorboard_logs}
 
     # ---------------------
     # TRAINING SETUP
@@ -164,12 +146,9 @@ class DeepNet1(LightningModule):
         # return [optimizer], [scheduler]
         return optimizer
 
-    # def prepare_data(self):
-    #     MNIST(self.hparams.data_root, train=True, download=True, transform=transforms.ToTensor())
-    #     MNIST(self.hparams.data_root, train=False, download=True, transform=transforms.ToTensor())
 
     def setup(self, stage):
-        all_data = RandomClasses()
+        all_data = RandomClasses(self.hparams.data_root)
         
         print("Length of all_data: ", len(all_data))
         print(self.hparams.num_data)
@@ -227,7 +206,7 @@ if __name__ == '__main__':
 
             
     # locally, for testing, debugging, etc.: fast_dev_run=True, 
-    trainer = pl.Trainer(max_epochs=3, logger=tb_logger)
+    trainer = pl.Trainer(max_epochs=30, logger=tb_logger)
 
     # on production machimne
     # trainer = pl.Trainer(gpus=1, distributed_backend='dp', max_epochs=30, logger=tb_logger, log_gpu_memory='all')
@@ -244,7 +223,7 @@ if __name__ == '__main__':
                  test_batch_size = 40,
                  validation_portion = .2,
                  test_portion = .2,
-                 data_root = '.',
+                 data_root = './data',
                  num_data = 200,
                  num_workers = 8)
                  
