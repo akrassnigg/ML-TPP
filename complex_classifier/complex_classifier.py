@@ -10,7 +10,7 @@ Classifier based on pytorch basic template
 
 
 import os
-from argparse import ArgumentParser
+import sys
 
 import numpy as np
 
@@ -27,8 +27,23 @@ from pytorch_lightning.core import LightningModule
 from pytorch_lightning.loggers import TensorBoardLogger
 
 import pytorch_lightning.metrics.utils as ptlmu
+from pytorch_lightning.utilities.seed import seed_everything
 
+import optuna
+from optuna.trial import TrialState
+from optuna.integration import PyTorchLightningPruningCallback
 
+do_pruning = True
+
+EPOCHS = 30
+TIMEOUT = 3600
+NTRIALS = 1000
+VAL_PORTION = 0.2
+TEST_PORTION = 0.2
+NUM_WORKERS = 0
+CLASSES = 2
+
+basedir = './data'
 logdir = "logs"
 
 model_timestamp = int(time.time())
@@ -69,6 +84,8 @@ class PoleClasses(Dataset):
     def __getitem__(self, idx):
         return self.data_X[idx], self.data_y[idx]
     
+    
+net_input_dim = len(PoleClasses(basedir)[0][0])
 
 
 
@@ -196,32 +213,6 @@ class DeepNet1(LightningModule):
     def test_dataloader(self):
         return DataLoader(self.test_dataset, batch_size=self.hparams.test_batch_size, num_workers=self.hparams.num_workers)
 
-    # @staticmethod
-    # def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
-    #     """
-    #     Define parameters that only apply to this model
-    #     """
-    #     parser = ArgumentParser(parents=[parent_parser])
-
-    #     # param overwrites
-    #     # parser.set_defaults(gradient_clip_val=5.0)
-
-    #     # network params
-    #     parser.add_argument('--in_features', default=28 * 28, type=int)
-    #     parser.add_argument('--hidden_dim', default=50000, type=int)
-    #     # use 500 for CPU, 50000 for GPU to see speed difference
-    #     parser.add_argument('--out_features', default=10, type=int)
-    #     parser.add_argument('--drop_prob', default=0.2, type=float)
-
-    #     # data
-    #     parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
-    #     parser.add_argument('--num_workers', default=4, type=int)
-
-    #     # training params (opt)
-    #     parser.add_argument('--epochs', default=20, type=int)
-    #     parser.add_argument('--batch_size', default=64, type=int)
-    #     parser.add_argument('--learning_rate', default=0.001, type=float)
-    #     return parser
 
 
 class PoleClassifier(LightningModule):
@@ -237,13 +228,6 @@ class PoleClassifier(LightningModule):
                  drop_prob: float = 0.2,
                  learning_rate: float = 0.001,
                  batch_size: int = 20,
-                 val_batch_size: int = 2,
-                 test_batch_size: int = 2,
-                 validation_portion: float = .2,
-                 test_portion: float = .2,
-                 data_root: str = './data',
-                 num_data: int = 200,
-                 num_workers: int = 0,
                  **kwargs
                  ):
         # init superclass
@@ -258,14 +242,18 @@ class PoleClassifier(LightningModule):
 
         self.fc_2 = nn.Linear(in_features=self.hparams.hidden_dim,
                               out_features=self.hparams.hidden_dim)
+        self.fc_2_bn = nn.BatchNorm1d(self.hparams.hidden_dim)
+        self.fc_2_drop = nn.Dropout(self.hparams.drop_prob)
 
         self.fc_3 = nn.Linear(in_features=self.hparams.hidden_dim,
                               out_features=self.hparams.hidden_dim)
+        self.fc_3_bn = nn.BatchNorm1d(self.hparams.hidden_dim)
+        self.fc_3_drop = nn.Dropout(self.hparams.drop_prob)
 
         self.fc_4 = nn.Linear(in_features=self.hparams.hidden_dim,
                               out_features=self.hparams.out_features)
 
-        self.example_input_array = torch.zeros(20, self.hparams.in_features)
+        self.example_input_array = torch.zeros(self.hparams.batch_size, self.hparams.in_features)
         
         
     def forward(self, x):
@@ -279,12 +267,12 @@ class PoleClassifier(LightningModule):
         x = self.fc_1_drop(x)
         x = self.fc_2(x)
         x = torch.relu(x)
-        x = self.fc_1_bn(x)
-        x = self.fc_1_drop(x)
+        x = self.fc_2_bn(x)
+        x = self.fc_2_drop(x)
         x = self.fc_3(x)
         x = torch.relu(x)
-        x = self.fc_1_bn(x)
-        x = self.fc_1_drop(x)
+        x = self.fc_3_bn(x)
+        x = self.fc_3_drop(x)
         x = self.fc_4(x)
         # x = torch.argmax(x, dim=1)
         return x
@@ -337,17 +325,29 @@ class PoleClassifier(LightningModule):
         return optimizer
 
 
+
+
+class PoleDataModule(pl.LightningDataModule):
+    def __init__(self, data_dir: str, batch_size: int, validation_portion: float, test_portion: float):
+        super().__init__()
+        self.data_dir = data_dir
+        self.batch_size = batch_size
+        self.validation_portion = validation_portion
+        self.test_portion = test_portion
+        
+        seed_everything(1234)
+
     def setup(self, stage):
-        all_data = PoleClasses(self.hparams.data_root)
+        all_data = PoleClasses(self.data_dir)
         
-        print("Length of all_data: ", len(all_data))
-        print("Length of data hyperparameter: ", self.hparams.num_data)
+        num_data = len(all_data)
+        print("Length of all_data: ", num_data)
         
-        self.validation_number = int(self.hparams.num_data * self.hparams.validation_portion)
-        self.test_number = int(self.hparams.num_data * self.hparams.test_portion)
-        self.training_number = self.hparams.num_data - self.test_number - self.validation_number
+        self.validation_number = int(num_data * self.validation_portion)
+        self.test_number = int(num_data * self.test_portion)
+        self.training_number = num_data - self.test_number - self.validation_number
         
-        print("Data splits: ", self.training_number, self.validation_number, self.test_number, self.hparams.num_data)
+        print("Data splits: ", self.training_number, self.validation_number, self.test_number, num_data)
 
         train_part, val_part, test_part = random_split(all_data, [self.training_number, self.validation_number, self.test_number])
 
@@ -356,81 +356,117 @@ class PoleClassifier(LightningModule):
         self.test_dataset = test_part
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.hparams.batch_size, num_workers=self.hparams.num_workers)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=NUM_WORKERS)
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.hparams.val_batch_size, num_workers=self.hparams.num_workers)
+        return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=NUM_WORKERS)
 
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.hparams.test_batch_size, num_workers=self.hparams.num_workers)
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=NUM_WORKERS)
 
-    # @staticmethod
-    # def add_model_specific_args(parent_parser, root_dir):  # pragma: no-cover
-    #     """
-    #     Define parameters that only apply to this model
-    #     """
-    #     parser = ArgumentParser(parents=[parent_parser])
+     
+    
+def objective(trial: optuna.trial.Trial):
 
-    #     # param overwrites
-    #     # parser.set_defaults(gradient_clip_val=5.0)
+    # Define those hyperparameters to be optimized
+    # n_layers = trial.suggest_int("n_layers", 10, 14)
+    dropout = trial.suggest_float("dropout", 0.0001, 0.1, log=True)
+    # n_layers = 13 # trial.suggest_int("n_layers", 10, 14) 
 
-    #     # network params
-    #     parser.add_argument('--in_features', default=28 * 28, type=int)
-    #     parser.add_argument('--hidden_dim', default=50000, type=int)
-    #     # use 500 for CPU, 50000 for GPU to see speed difference
-    #     parser.add_argument('--out_features', default=10, type=int)
-    #     parser.add_argument('--drop_prob', default=0.2, type=float)
+    hidden_size = trial.suggest_int("hidden_size", 4, 128) # 4 up to 256
+    batch_size = trial.suggest_int("batch_size", 4, 100, log=True)   # 4 up to 400
+    learning_rate_init = trial.suggest_float('learning_rate_init', 1e-6, 1e-4, log=True)
+    # learning_rate_init = 1e-4
+    
+    model = PoleClassifier(in_features = net_input_dim,
+                 hidden_dim = hidden_size,
+                 out_features = CLASSES,
+                 drop_prob = dropout,
+                 learning_rate = learning_rate_init,
+                 batch_size = batch_size,
+                 )
+    
+    datamodule = PoleDataModule(data_dir=basedir, batch_size=batch_size, 
+                                validation_portion=VAL_PORTION, test_portion=TEST_PORTION)
 
-    #     # data
-    #     parser.add_argument('--data_root', default=os.path.join(root_dir, 'mnist'), type=str)
-    #     parser.add_argument('--num_workers', default=4, type=int)
+    trainer = pl.Trainer(
+        logger=tb_logger,
+        # limit_val_batches=PERCENT_VALID_EXAMPLES,
+        checkpoint_callback=False,
+        max_epochs=EPOCHS,
+        callbacks=[PyTorchLightningPruningCallback(trial, monitor="val_loss")],
+    )
 
-    #     # training params (opt)
-    #     parser.add_argument('--epochs', default=20, type=int)
-    #     parser.add_argument('--batch_size', default=64, type=int)
-    #     parser.add_argument('--learning_rate', default=0.001, type=float)
-    #     return parser
+
+    # on production machine
+    # trainer = pl.Trainer(gpus=1, distributed_backend='dp', max_epochs=EPOCHS, 
+                        # logger=tb_logger, checkpoint_callback=False, log_gpu_memory='all',
+                        # callbacks=[PyTorchLightningPruningCallback(trial, monitor="val_loss")])
+
+    
+    hyperparameters = dict(n_layers=3, learning_rate_init=learning_rate_init, 
+                           batch_size=batch_size, hidden_size=hidden_size, 
+                           dropout=dropout, net_input_dim=net_input_dim)
+    trainer.logger.log_hyperparams(hyperparameters)
+    
+    trainer.fit(model, datamodule=datamodule)
+    trainer.test(model, datamodule=datamodule)
+
+
+    return trainer.callback_metrics["val_loss"].item()
+
+
 
 
 if __name__ == '__main__':
 
             
-    # locally, for testing, debugging, etc.: fast_dev_run=True, 
-    trainer = pl.Trainer(max_epochs=300, logger=tb_logger)
+    
+    pruner: optuna.pruners.BasePruner = (
+        optuna.pruners.MedianPruner() if do_pruning else optuna.pruners.NopPruner()
+    )
 
-    # on production machimne
-    # trainer = pl.Trainer(gpus=1, distributed_backend='dp', max_epochs=30, logger=tb_logger, log_gpu_memory='all')
+    study = optuna.create_study(direction="minimize", pruner=pruner)
+    study.optimize(objective, n_trials=NTRIALS, timeout=TIMEOUT)
+    # study.optimize(objective, n_trials=NTRIALS, timeout=TIMEOUT, n_jobs=-1)
+
+    pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
+    complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
+
+    print("Study statistics: ")
+    print("  Number of finished trials: ", len(study.trials))
+    print("  Number of pruned trials: ", len(pruned_trials))
+    print("  Number of complete trials: ", len(complete_trials))
+
+    print("Best trial:")
+    trial = study.best_trial
+
+    print("  Value: {}".format(trial.value))
+
+    print("  Params: ")
+    for key, value in trial.params.items():
+        print("    {}: {}".format(key, value))
+
+    contour_params = ['batch_size', 'dropout']
+    fig = optuna.visualization.plot_contour(study, params=[contour_params[0], contour_params[1]])
+    filename_contour = "contour_plot_"+contour_params[0]+"_"+contour_params[1]+"_numtrials_"+str(NTRIALS)+"_epochs_"+str(EPOCHS)+".png"
+    fig.write_image(filename_contour)
+
+    contour_params = ['batch_size', 'hidden_size']
+    fig = optuna.visualization.plot_contour(study, params=[contour_params[0], contour_params[1]])
+    filename_contour = "contour_plot_"+contour_params[0]+"_"+contour_params[1]+"_numtrials_"+str(NTRIALS)+"_epochs_"+str(EPOCHS)+".png"
+    fig.write_image(filename_contour)
+
+    contour_params = ['hidden_size', 'learning_rate_init']
+    fig = optuna.visualization.plot_contour(study, params=[contour_params[0], contour_params[1]])
+    filename_contour = "contour_plot_"+contour_params[0]+"_"+contour_params[1]+"_numtrials_"+str(NTRIALS)+"_epochs_"+str(EPOCHS)+".png"
+    fig.write_image(filename_contour)
+
+    fig1 = optuna.visualization.plot_param_importances(study)
+
+    filename_importance = "importance_plot_numtrials_"+str(NTRIALS)+"_epochs_"+str(EPOCHS)+".png"
+    fig1.write_image(filename_importance)
 
 
-    # # run the training, etc., including validation on part of the training data set on random test data:
-    # model = DeepNet1(in_features = 20,
-    #              hidden_dim = 100,
-    #              out_features = 4,
-    #              drop_prob = 0.2,
-    #              learning_rate = 0.001 * 8,
-    #              batch_size = 200,
-    #              val_batch_size = 40,
-    #              test_batch_size = 40,
-    #              validation_portion = .2,
-    #              test_portion = .2,
-    #              data_root = './data',
-    #              num_data = 200,
-    #              num_workers = 0)
-                 
-    model = PoleClassifier(in_features = 128,
-                 hidden_dim = 100,
-                 out_features = 2,
-                 drop_prob = 0.3,
-                 learning_rate = 0.001,
-                 batch_size = 20,
-                 val_batch_size = 10,
-                 test_batch_size = 10,
-                 validation_portion = .2,
-                 test_portion = .2,
-                 data_root = './data',
-                 num_data = 20000,
-                 num_workers = 0)
-                 
-    trainer.fit(model)
-    trainer.test(model)
+
 
