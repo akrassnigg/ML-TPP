@@ -17,7 +17,7 @@ import pandas as pd
 
 
 
-n_examples = 1040000
+n_examples = 240000
 
 the_scale = 10.0
 
