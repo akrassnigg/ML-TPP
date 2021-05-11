@@ -36,7 +36,7 @@ from optuna.integration import PyTorchLightningPruningCallback
 
 do_pruning = False
 
-EPOCHS = None
+EPOCHS = 1000000
 TIMEOUT = None
 NTRIALS = None
 TRAIN_SAMPLES = 200000
@@ -47,6 +47,9 @@ CLASSES = 9
 basedir = './data'
 logdir = "logs"
 
+##############################################################################
+###################   Data-related Classes   #################################
+##############################################################################
 
 class PoleClasses(Dataset):
     def __init__(self, data_dir):
@@ -108,57 +111,50 @@ class PoleDataModule(pl.LightningDataModule):
         return DataLoader(self.test_dataset, batch_size=self.test_number, drop_last = True) #need drop_last=True for BatchNorm1D to work for any Batchsize
 
 
-class PoleClassifier(LightningModule):
-    """
-    Basic lightning model to use a vector of inputs in order to predict
-    the class of a complex structure in the vector
-    """
+##############################################################################
+###################   Network architectures   ################################
+##############################################################################
 
+class FC4BN(torch.nn.Module):
+    '''
+    ANN Architecture with 4 hidden layers and Batch Normalization
+    '''
+    
     def __init__(self,
                  ### Dataset-specific parameters
                  in_features: int  = net_input_dim,
                  out_features: int = CLASSES,
  
                  ### Fully connected layers
-                 hidden_dim1: int = 1000, 
-                 hidden_dim2: int = 1000, 
-                 hidden_dim3: int = 1000, 
-                 hidden_dim4: int = 1000, 
-                 
-                 ### Regularization
-                 weight_decay: float = 0.0,
-                 
-                 ### Learning parameters
-                 learning_rate: float = 0.001,
-                 batch_size:      int = 20,
-                 
-                 **kwargs
+                 hidden_dim1: int = 256, 
+                 hidden_dim2: int = 128, 
+                 hidden_dim3: int = 64, 
+                 hidden_dim4: int = 32, 
                  ):
+        
         # init superclasss
         super().__init__()
-        # save all variables in __init__ signature to self.hparams
-        self.save_hyperparameters()
         
-        self.initial_bn = nn.BatchNorm1d(self.hparams.in_features)
+        self.initial_bn = nn.BatchNorm1d(in_features)
 
-        self.fc1 = nn.Linear(in_features=self.hparams.in_features,
-                              out_features=self.hparams.hidden_dim1)
-        self.fc1_bn = nn.BatchNorm1d(self.hparams.hidden_dim1)
+        self.fc1 = nn.Linear(in_features=in_features,
+                              out_features=hidden_dim1)
+        self.fc1_bn = nn.BatchNorm1d(hidden_dim1)
         
-        self.fc2 = nn.Linear(in_features=self.hparams.hidden_dim1,
-                              out_features=self.hparams.hidden_dim2)
-        self.fc2_bn = nn.BatchNorm1d(self.hparams.hidden_dim2)
+        self.fc2 = nn.Linear(in_features=hidden_dim1,
+                              out_features=hidden_dim2)
+        self.fc2_bn = nn.BatchNorm1d(hidden_dim2)
         
-        self.fc3 = nn.Linear(in_features=self.hparams.hidden_dim2,
-                              out_features=self.hparams.hidden_dim3)
-        self.fc3_bn = nn.BatchNorm1d(self.hparams.hidden_dim3)
+        self.fc3 = nn.Linear(in_features=hidden_dim2,
+                              out_features=hidden_dim3)
+        self.fc3_bn = nn.BatchNorm1d(hidden_dim3)
         
-        self.fc4 = nn.Linear(in_features=self.hparams.hidden_dim3,
-                              out_features=self.hparams.hidden_dim4)
-        self.fc4_bn = nn.BatchNorm1d(self.hparams.hidden_dim4)
+        self.fc4 = nn.Linear(in_features=hidden_dim3,
+                              out_features=hidden_dim4)
+        self.fc4_bn = nn.BatchNorm1d(hidden_dim4)
         
-        self.fc_out = nn.Linear(in_features=self.hparams.hidden_dim4,
-                              out_features=self.hparams.out_features)
+        self.fc_out = nn.Linear(in_features=hidden_dim4,
+                              out_features=out_features)
         
         
     def forward(self, x):        
@@ -182,7 +178,120 @@ class PoleClassifier(LightningModule):
         
         x = self.fc_out(x)
         return x
+    
+    
+    
+class CONV1FC4BN(torch.nn.Module):
+    '''
+    ANN Architecture with 1 Conv1D Layer, 4 hidden layers and Batch Normalization
+    '''
+    def __init__(self,
+                 ### Dataset-specific parameters
+                 in_features: int  = net_input_dim,
+                 out_features: int = CLASSES,
+                 
+                 ### Conv Layers
+                 out_channels1: int = 5,
+                 kernel_size1: int  = 5,
+ 
+                 ### Fully connected layers
+                 hidden_dim1: int = 128, 
+                 hidden_dim2: int = 256, 
+                 hidden_dim3: int = 512, 
+                 hidden_dim4: int = 1024, 
+                 ):
+        
+        # init superclasss
+        super().__init__()
+        
+        self.initial_bn = nn.BatchNorm1d(self.hparams.in_features)
+        
+        self.conv1 = nn.Conv1d(in_channels=1, out_channels=self.hparams.out_channels1, kernel_size=self.hparams.kernel_size1, stride=1,  padding=0)   
+        
+        self.flatten = nn.Flatten()
+        
+        conv_out_features = (self.hparams.in_features - self.hparams.kernel_size1 + 1) * self.hparams.out_channels1
+        self.conv1_bn = nn.BatchNorm1d(conv_out_features)
 
+        self.fc1 = nn.Linear(in_features=conv_out_features,
+                              out_features=self.hparams.hidden_dim1)
+        self.fc1_bn = nn.BatchNorm1d(self.hparams.hidden_dim1)
+        
+        self.fc2 = nn.Linear(in_features=self.hparams.hidden_dim1,
+                              out_features=self.hparams.hidden_dim2)
+        self.fc2_bn = nn.BatchNorm1d(self.hparams.hidden_dim2)
+        
+        self.fc3 = nn.Linear(in_features=self.hparams.hidden_dim2,
+                              out_features=self.hparams.hidden_dim3)
+        self.fc3_bn = nn.BatchNorm1d(self.hparams.hidden_dim3)
+        
+        self.fc4 = nn.Linear(in_features=self.hparams.hidden_dim3,
+                              out_features=self.hparams.hidden_dim4)
+        self.fc4_bn = nn.BatchNorm1d(self.hparams.hidden_dim4)
+        
+        self.fc_out = nn.Linear(in_features=self.hparams.hidden_dim4,
+                              out_features=self.hparams.out_features)
+        
+        
+    def forward(self, x):        
+        x = self.initial_bn(x)
+        
+        x = x.unsqueeze(1)      #add a channel dimension
+        x = self.conv1(x)
+        x = torch.relu(x)
+        x = self.flatten(x)
+        x = self.conv1_bn(x)
+        
+        x = self.fc1(x)
+        x = torch.relu(x)
+        x = self.fc1_bn(x)
+        
+        x = self.fc2(x)
+        x = torch.relu(x)
+        x = self.fc2_bn(x)
+        
+        x = self.fc3(x)
+        x = torch.relu(x)
+        x = self.fc3_bn(x)
+        
+        x = self.fc4(x)
+        x = torch.relu(x)
+        x = self.fc4_bn(x)
+        
+        x = self.fc_out(x)
+        return x
+    
+    
+##############################################################################
+###########################   Classifier   ###################################
+##############################################################################
+
+
+class PoleClassifier(LightningModule):
+    """
+    Basic lightning model to use a vector of inputs in order to predict
+    the class of a complex structure in the vector
+    """
+    def __init__(self, 
+                 # ANN Architecture
+                 model, 
+                 
+                 # Regularization
+                 weight_decay:  float = 0.0,
+                 
+                 # Training-related hyperparameters
+                 learning_rate: float = 1e-3, 
+                 
+                 ):
+        super().__init__()
+        self.model = model
+        self.weight_decay = weight_decay
+        self.learning_rate = learning_rate
+ 
+    def forward(self, x):
+        x = self.model(x)
+        return x
+    
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
@@ -228,10 +337,14 @@ class PoleClassifier(LightningModule):
         Return whatever optimizers and learning rate schedulers you want here.
         At least one optimizer is required.
         """
-        optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
+        optimizer = optim.Adam(self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
         return {"optimizer": optimizer}
 
 
+
+##############################################################################
+#############################   Optuna   #####################################
+##############################################################################
  
     
 def objective(trial: optuna.trial.Trial):
@@ -257,20 +370,17 @@ def objective(trial: optuna.trial.Trial):
     learning_rate_init = 1e-3#4#4#5#trial.suggest_float('learning_rate_init', 1e-6, 1e-1, log=True) 
 
     model = PoleClassifier(
-                in_features = in_features,
-                out_features = out_features,
+                model = FC4BN(in_features = in_features,
+                              out_features = out_features,
+                              hidden_dim1 = hidden_dim1,
+                              hidden_dim2 = hidden_dim2,
+                              hidden_dim3 = hidden_dim3,
+                              hidden_dim4 = hidden_dim4),
                 
-                hidden_dim1 = hidden_dim1,
-                hidden_dim2 = hidden_dim2,
-                hidden_dim3 = hidden_dim3,
-                hidden_dim4 = hidden_dim4,
-                
-                weight_decay = weight_decay,
-                
-                learning_rate = learning_rate_init,
-                batch_size = batch_size
+                weight_decay  = weight_decay,
+                learning_rate = learning_rate_init
                 )
-    
+                
     datamodule = PoleDataModule(data_dir=basedir, batch_size=batch_size, 
                                 train_portion=TRAIN_SAMPLES, validation_portion=VAL_SAMPLES, test_portion=TEST_SAMPLES)
     
@@ -293,6 +403,9 @@ def objective(trial: optuna.trial.Trial):
     )
 
     hyperparameters = dict(
+                in_features  = net_input_dim,
+                out_features = CLASSES,
+        
                 hidden_dim1 = hidden_dim1,
                 hidden_dim2 = hidden_dim2,
                 hidden_dim3 = hidden_dim3,
@@ -310,6 +423,10 @@ def objective(trial: optuna.trial.Trial):
     return trainer.callback_metrics["test_acc"].item()
 
 
+
+##############################################################################
+##########################   Execution   #####################################
+##############################################################################
 
 
 if __name__ == '__main__':
