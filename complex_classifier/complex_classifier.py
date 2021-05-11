@@ -274,7 +274,7 @@ class PoleClassifier(LightningModule):
     """
     def __init__(self, 
                  # ANN Architecture
-                 model, 
+                 architecture, 
                  
                  # Regularization
                  weight_decay:  float = 0.0,
@@ -284,7 +284,7 @@ class PoleClassifier(LightningModule):
                  
                  ):
         super().__init__()
-        self.model = model
+        self.model = architecture
         self.weight_decay = weight_decay
         self.learning_rate = learning_rate
  
@@ -370,12 +370,12 @@ def objective(trial: optuna.trial.Trial):
     learning_rate_init = 1e-3#4#4#5#trial.suggest_float('learning_rate_init', 1e-6, 1e-1, log=True) 
 
     model = PoleClassifier(
-                model = FC4BN(in_features = in_features,
-                              out_features = out_features,
-                              hidden_dim1 = hidden_dim1,
-                              hidden_dim2 = hidden_dim2,
-                              hidden_dim3 = hidden_dim3,
-                              hidden_dim4 = hidden_dim4),
+                architecture = FC4BN(in_features = in_features,
+                               out_features = out_features,
+                               hidden_dim1 = hidden_dim1,
+                               hidden_dim2 = hidden_dim2,
+                               hidden_dim3 = hidden_dim3,
+                               hidden_dim4 = hidden_dim4),
                 
                 weight_decay  = weight_decay,
                 learning_rate = learning_rate_init
