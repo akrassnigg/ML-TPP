@@ -130,6 +130,9 @@ class FC4BN(torch.nn.Module):
                  hidden_dim2: int = 128, 
                  hidden_dim3: int = 64, 
                  hidden_dim4: int = 32, 
+                 
+                 *args,
+                 **kwargs
                  ):
         
         # init superclasss
@@ -199,6 +202,9 @@ class CONV1FC4BN(torch.nn.Module):
                  hidden_dim2: int = 256, 
                  hidden_dim3: int = 512, 
                  hidden_dim4: int = 1024, 
+                 
+                 *args,
+                 **kwargs
                  ):
         
         # init superclasss
@@ -273,20 +279,21 @@ class PoleClassifier(LightningModule):
     the class of a complex structure in the vector
     """
     def __init__(self, 
-                 # ANN Architecture
-                 architecture, 
-                 
                  # Regularization
                  weight_decay:  float = 0.0,
                  
                  # Training-related hyperparameters
                  learning_rate: float = 1e-3, 
                  
+                 # ANN Architecture
+                 architecture: str = 'FC4BN', 
+                 
+                 #Additional arguments needed for initialization of the ANN Architecture
+                 **kwargs
                  ):
         super().__init__()
-        self.model = architecture
-        self.weight_decay = weight_decay
-        self.learning_rate = learning_rate
+        self.save_hyperparameters()
+        self.model = globals()[architecture](**kwargs)
  
     def forward(self, x):
         x = self.model(x)
@@ -337,7 +344,7 @@ class PoleClassifier(LightningModule):
         Return whatever optimizers and learning rate schedulers you want here.
         At least one optimizer is required.
         """
-        optimizer = optim.Adam(self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
+        optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
         return {"optimizer": optimizer}
 
 
@@ -366,19 +373,23 @@ def objective(trial: optuna.trial.Trial):
     weight_decay = 0.0#trial.suggest_float('weight_decay', 1e-1, 1e0, log=False)
                  
     #Training hparams
-    batch_size         = 200000#trial.suggest_int("batch_size", 512, 10000, log=False)  
-    learning_rate_init = 1e-3#4#4#5#trial.suggest_float('learning_rate_init', 1e-6, 1e-1, log=True) 
+    batch_size    = 200000#trial.suggest_int("batch_size", 512, 10000, log=False)  
+    learning_rate = 1e-3#4#4#5#trial.suggest_float('learning_rate', 1e-6, 1e-1, log=True) 
+    
+    # ANN Architecture
+    architecture = 'FC4BN'
 
     model = PoleClassifier(
-                architecture = FC4BN(in_features = in_features,
-                               out_features = out_features,
-                               hidden_dim1 = hidden_dim1,
-                               hidden_dim2 = hidden_dim2,
-                               hidden_dim3 = hidden_dim3,
-                               hidden_dim4 = hidden_dim4),
-                
                 weight_decay  = weight_decay,
-                learning_rate = learning_rate_init
+                learning_rate = learning_rate,
+                
+                architecture = architecture,
+                in_features  = in_features,
+                out_features = out_features,
+                hidden_dim1  = hidden_dim1,
+                hidden_dim2  = hidden_dim2,
+                hidden_dim3  = hidden_dim3,
+                hidden_dim4  = hidden_dim4
                 )
                 
     datamodule = PoleDataModule(data_dir=basedir, batch_size=batch_size, 
@@ -403,6 +414,8 @@ def objective(trial: optuna.trial.Trial):
     )
 
     hyperparameters = dict(
+                architecture = architecture,
+        
                 in_features  = net_input_dim,
                 out_features = CLASSES,
         
@@ -413,7 +426,7 @@ def objective(trial: optuna.trial.Trial):
                 
                 weight_decay = weight_decay,
                 
-                learning_rate = learning_rate_init,
+                learning_rate = learning_rate,
                 batch_size = batch_size)
     trainer.logger.log_hyperparams(hyperparameters)
     
@@ -492,7 +505,7 @@ if __name__ == '__main__':
     
     #early_stopping = EarlyStopping('val_acc', mode='max', patience=1000)
 
-    trainer = pl.Trainer(resume_from_checkpoint="./best.ckpt", 
+    trainer = pl.Trainer(resume_from_checkpoint="./last.ckpt", 
                         logger=tb_logger,
                         #val_check_interval=1,
                         checkpoint_callback=checkpoint_callback,
@@ -501,7 +514,7 @@ if __name__ == '__main__':
                         gpus=1
                         )
     
-    model = PoleClassifier.load_from_checkpoint("./best.ckpt",
+    model = PoleClassifier.load_from_checkpoint("./last.ckpt",
                                                 batch_size=batch_size,
                                                 learning_rate=learning_rate)
     
