@@ -156,10 +156,12 @@ def create_training_data_classifier(length, data_x, with_bounds, data_dir):
         params = drop_poles_fact2(pole_class=pole_class, pole_params=params, data_x=data_x, fact=fact_classifier)
         
         out_re.append(pole_curve_calc(pole_class=pole_class, pole_params=params, data_x=data_x))
-        labels.append(np.ones(num)*pole_class)
+        labels.append(np.ones(params.shape[1])*pole_class)
     # Convert lists to numpy arrays
     out_re = np.vstack(out_re)
     labels = np.hstack(labels)
+
+    print('Maximum number of samples to be created: ', len(labels))
     
     # Get Scipy predictions for each sample
     print('Getting SciPy predictions...')
