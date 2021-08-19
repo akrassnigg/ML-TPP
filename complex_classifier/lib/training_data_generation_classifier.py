@@ -16,10 +16,10 @@ from lib.scipy_fit_functions import get_all_scipy_preds_dataprep
 from lib.curve_calc_functions import pole_curve_calc, pole_curve_calc2
 from lib.standardization_functions import std_data_new
 from lib.diverse_functions import mse, drop_not_finite_rows
-from parameters import fact_classifier
+from parameters import fact_classifier, dst_min_classifier
 
 
-def drop_poles_fact(pole_class, pole_params, point_x, fact):
+def drop_small_poles(pole_class, pole_params, point_x, fact):
     '''
     Drops parameter configureations, that contain poles, whose out_re_i is a factor fact smaller, than out_re_i of the other poles in the sample
     
@@ -69,7 +69,7 @@ def drop_poles_fact(pole_class, pole_params, point_x, fact):
         new_pole_params = pole_params[:,keep_indices]
     return new_pole_params
 
-def drop_poles_fact2(pole_class, pole_params, data_x, fact):
+def drop_small_poles_2(pole_class, pole_params, data_x, fact):
     '''
     Drops parameter configureations, that contain poles, whose out_re is a factor fact smaller, than out_re of the other poles in the sample
     
@@ -122,6 +122,41 @@ def drop_poles_fact2(pole_class, pole_params, data_x, fact):
         new_pole_params = pole_params[:,keep_indices]
     return new_pole_params
 
+
+def drop_near_poles(pole_class, pole_params, dst_min):
+    '''
+    Drops parameter configureations, that contain poles, whose positions are nearer to each other than dst_min (complex, euclidean norm)
+    
+    pole_class: int = 0-8
+        The Class of the Pole Configuration
+    
+    pole_params: ndarray of shape (k,m), where m is the number of samples
+        Parameters specifying the Pole Configuration
+        
+    dst_min: numeric>=0
+        The minimal allowed distance between (complex) pole positions
+        
+    returns: ndarray of shape (k,m*), where m* is the number of left samples
+        Parameters specifying the Pole Configuration and satisfying min(out_re_i)*fact >= max(out_re_i)      
+    '''
+    
+    if pole_class == 0 or pole_class == 1:
+        new_pole_params = pole_params
+    elif pole_class == 2 or pole_class == 3 or pole_class == 4:
+        dst_arr = np.sqrt( (pole_params[0,:] - pole_params[4,:])**2 + (pole_params[1,:] - pole_params[5,:])**2 )
+        keep_indices = dst_arr > dst_min
+        new_pole_params = pole_params[:,keep_indices]
+    elif pole_class == 5 or pole_class == 6 or pole_class == 7 or pole_class==8:
+        dst_arr = np.sqrt( (pole_params[0,:] - pole_params[4,:])**2 + (pole_params[1,:] - pole_params[5,:])**2 )
+        keep_indices = dst_arr > dst_min
+        dst_arr = np.sqrt( (pole_params[0,:] - pole_params[8,:])**2 + (pole_params[1,:] - pole_params[9,:])**2 )
+        keep_indices *= dst_arr > dst_min
+        dst_arr = np.sqrt( (pole_params[4,:] - pole_params[8,:])**2 + (pole_params[5,:] - pole_params[9,:])**2 )
+        keep_indices *= dst_arr > dst_min
+        new_pole_params = pole_params[:,keep_indices]
+    return new_pole_params
+
+
 def create_training_data_classifier(length, data_x, with_bounds, data_dir):
     '''
     Creates training data for the NN classifier and saves it to the disk
@@ -133,7 +168,7 @@ def create_training_data_classifier(length, data_x, with_bounds, data_dir):
         Gridpoints, where the function/pole configuration shall be evaluated
         
     with_bounds: bool, default=False
-        Shall the Scipy fit's parameters be contrained by bounds determined by coeff_min, coeff_max, re_min, re_max, im_min, im_max?
+        Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
         
     data_dir: str
         Path to the folder, where data and standardization files shall be stored
@@ -153,7 +188,8 @@ def create_training_data_classifier(length, data_x, with_bounds, data_dir):
     for pole_class in pole_classes:
         # Get pole configurations of the current pole class and append them to out_re and labels
         params = get_train_params(pole_class=pole_class, num=num)
-        params = drop_poles_fact2(pole_class=pole_class, pole_params=params, data_x=data_x, fact=fact_classifier)
+        params = drop_small_poles_2(pole_class=pole_class, pole_params=params, data_x=data_x, fact=fact_classifier)
+        params = drop_near_poles(pole_class=pole_class, pole_params=params, dst_min=dst_min_classifier)
         
         out_re.append(pole_curve_calc(pole_class=pole_class, pole_params=params, data_x=data_x))
         labels.append(np.ones(params.shape[1])*pole_class)

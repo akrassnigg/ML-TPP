@@ -18,7 +18,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
 
 from parameters import class_regressor, data_dir_regressor
-from parameters import re_max, re_min, im_max, im_min, coeff_max
+from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
 from parameters import num_use
 from lib.training_data_generation_regressor import create_training_data_regressor
 from lib.architectures import FC6
@@ -154,48 +154,48 @@ def myL1_norm(y_hat, y, pole_class, std_path):
                                      std_path=std_path, name_var='variances_params.npy', name_mean='means_params.npy'))
     
     if pole_class == 0:
-        max_params = np.array([[re_max],[coeff_max]])
-        min_params = np.array([[re_min],[-coeff_max]])
+        max_params = np.array([[re_max],[coeff_re_max]])
+        min_params = np.array([[re_min],[-coeff_re_max]])
         min_params = np.transpose(np.tile(min_params, (1,len(y))),(1,0))
         max_params = np.transpose(np.tile(max_params, (1,len(y))),(1,0))
     elif pole_class == 1:
-        max_params = np.array([[re_max],[im_max],[coeff_max],[coeff_max]])
-        min_params = np.array([[re_min],[im_min],[-coeff_max],[-coeff_max]])
+        max_params = np.array([[re_max],[im_max],[coeff_re_max],[coeff_im_max]])
+        min_params = np.array([[re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
         min_params = np.transpose(np.tile(min_params, (1,len(y))),(1,0))
         max_params = np.transpose(np.tile(max_params, (1,len(y))),(1,0))
     elif pole_class == 2:
-        max_params = np.array([[re_max],[coeff_max]])
-        min_params = np.array([[re_min],[-coeff_max]])
+        max_params = np.array([[re_max],[coeff_re_max]])
+        min_params = np.array([[re_min],[-coeff_re_max]])
         min_params = np.transpose(np.tile(min_params, (2,len(y))),(1,0))
         max_params = np.transpose(np.tile(max_params, (2,len(y))),(1,0))
     elif pole_class == 3:
-        max_params = np.array([[re_max],[coeff_max], [re_max],[im_max],[coeff_max],[coeff_max]])
-        min_params = np.array([[re_min],[-coeff_max], [re_min],[im_min],[-coeff_max],[-coeff_max]])
+        max_params = np.array([[re_max],[coeff_re_max], [re_max],[im_max],[coeff_re_max],[coeff_im_max]])
+        min_params = np.array([[re_min],[-coeff_re_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
         min_params = np.transpose(np.tile(min_params, (1,len(y))),(1,0))
         max_params = np.transpose(np.tile(max_params, (1,len(y))),(1,0))
     elif pole_class == 4:
-        max_params = np.array([[re_max],[im_max],[coeff_max],[coeff_max]])
-        min_params = np.array([[re_min],[im_min],[-coeff_max],[-coeff_max]])
+        max_params = np.array([[re_max],[im_max],[coeff_re_max],[coeff_im_max]])
+        min_params = np.array([[re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
         min_params = np.transpose(np.tile(min_params, (2,len(y))),(1,0))
         max_params = np.transpose(np.tile(max_params, (2,len(y))),(1,0))
     elif pole_class == 5:
-        max_params = np.array([[re_max],[coeff_max]])
-        min_params = np.array([[re_min],[-coeff_max]])
+        max_params = np.array([[re_max],[coeff_re_max]])
+        min_params = np.array([[re_min],[-coeff_re_max]])
         min_params = np.transpose(np.tile(min_params, (3,len(y))),(1,0))
         max_params = np.transpose(np.tile(max_params, (3,len(y))),(1,0))
     elif pole_class == 6:
-        max_params = np.array([[re_max],[coeff_max],  [re_max],[coeff_max],  [re_max],[im_max],[coeff_max],[coeff_max]])
-        min_params = np.array([[re_min],[-coeff_max], [re_min],[-coeff_max], [re_min],[im_min],[-coeff_max],[-coeff_max]])
+        max_params = np.array([[re_max],[coeff_re_max],  [re_max],[coeff_re_max],  [re_max],[im_max],[coeff_re_max],[coeff_im_max]])
+        min_params = np.array([[re_min],[-coeff_re_max], [re_min],[-coeff_re_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
         min_params = np.transpose(np.tile(min_params, (1,len(y))),(1,0))
         max_params = np.transpose(np.tile(max_params, (1,len(y))),(1,0))
     elif pole_class == 7:
-        max_params = np.array([[re_max],[coeff_max],  [re_max],[im_max],[coeff_max],[coeff_max],   [re_max],[im_max],[coeff_max],[coeff_max]])
-        min_params = np.array([[re_min],[-coeff_max], [re_min],[im_min],[-coeff_max],[-coeff_max], [re_min],[im_min],[-coeff_max],[-coeff_max]])
+        max_params = np.array([[re_max],[coeff_re_max],  [re_max],[im_max],[coeff_re_max],[coeff_im_max],   [re_max],[im_max],[coeff_re_max],[coeff_im_max]])
+        min_params = np.array([[re_min],[-coeff_re_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
         min_params = np.transpose(np.tile(min_params, (1,len(y))),(1,0))
         max_params = np.transpose(np.tile(max_params, (1,len(y))),(1,0))
     elif pole_class == 8:
-        max_params = np.array([[re_max],[im_max],[coeff_max],[coeff_max]])
-        min_params = np.array([[re_min],[im_min],[-coeff_max],[-coeff_max]])
+        max_params = np.array([[re_max],[im_max],[coeff_re_max],[coeff_im_max]])
+        min_params = np.array([[re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
         min_params = np.transpose(np.tile(min_params, (3,len(y))),(1,0))
         max_params = np.transpose(np.tile(max_params, (3,len(y))),(1,0))
     else:

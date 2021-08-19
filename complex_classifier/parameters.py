@@ -30,9 +30,11 @@ re_min = -10.
 im_max = 10.
 im_min = 0.0
 
-# Range of pole coefficients (for real and imag part of coeff):
-coeff_max = 1.0
-coeff_min = 0.0
+# Range of absolute values of pole coefficients (for real and imag part of coeff):
+coeff_re_max = 1.0
+coeff_re_min = 0.0
+coeff_im_max = 1.0
+coeff_im_min = 0.0
 
 ##############################################################################
 ##############   Classifier   ################################################
@@ -46,9 +48,9 @@ models_dir_classifier = dir_classifier + 'models/'
 # Number of data points
 n_examples_classifier = 20000
 
-# Properties of drop_poles_fact
-# set to very large value to not drop any samples
-fact_classifier    = 1e15
+# Properties of drop_small_poles and drop_near_poles
+fact_classifier    = 1e15  # set to very large value to not drop any samples
+dst_min_classifier = 0.0   # set to 0 to not drop any samples
 
 # Data split
 train_portion_classifier = 0.8

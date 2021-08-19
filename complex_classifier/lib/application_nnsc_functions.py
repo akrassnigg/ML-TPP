@@ -27,7 +27,7 @@ def get_nnsc_pred(pole_class, data_x, data_y, with_bounds, model_path):
         Points to be used for fitting
     
     with_bounds: bool
-        Shall the fit's parameters be contrained by bounds determined by coeff_min, coeff_max, re_min, re_max, im_min, im_max?
+        Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
         
     model_path: str
         Path to folder containing all necessary files:
@@ -57,7 +57,7 @@ def get_all_nnsc_preds(data_x, data_y, with_bounds, model_path):
         Points to be used for fitting
     
     with_bounds: bool
-        Shall the fit's parameters be contrained by bounds determined by coeff_min, coeff_max, re_min, re_max, im_min, im_max?
+        Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
     
     model_path: str
         Path to folder containing all necessary files:

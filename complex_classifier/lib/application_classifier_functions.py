@@ -35,7 +35,7 @@ def prepare_data9(data_x, data_y, with_bounds=False, do_std=False, std_path=None
         Function Values
     
     with_bounds: bool, default=False
-        Shall Scipy curve_fit be restricted to boundaries given by coeff_min, coeff_max, re_min, re_max, im_min, im_max
+        Shall Scipy curve_fit be restricted to boundaries given by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max
     
     do_std: bool, default=False
         Shall the data be standardized to the standardization, that was used to train the Classifier?
@@ -148,7 +148,7 @@ def get_classifier_preds(data_x, data_y, with_bounds, do_std, model_path):
         Function Values
     
     with_bounds: bool
-        Shall Scipy curve_fit be restricted to boundaries given by coeff_min, coeff_max, re_min, re_max, im_min, im_max? (see also: prepare_data9)
+        Shall Scipy curve_fit be restricted to boundaries given by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max? (see also: prepare_data9)
     
     do_std: bool
         Shall the data be standardized to the standardization, that was used to train the Classifier?

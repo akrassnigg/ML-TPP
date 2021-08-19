@@ -79,6 +79,7 @@ class PoleDataModule_Classifier(pl.LightningDataModule):
         #get train weights for weighted random sampler
         train_labels = self.train_dataset[:][1]
         max_label    = np.max(train_labels)
+        print('Number of Classes: ', max_label+1)
         
         label_counter = []
         for i in range(max_label+1):

@@ -8,8 +8,9 @@ Functions, that generate pole configurations
 
 """
 import numpy as np
+import sys
 
-from parameters import re_max, re_min, im_max, im_min, coeff_max, coeff_min
+from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
 
 
 def get_params(num, typ: str):
@@ -31,22 +32,32 @@ def get_params(num, typ: str):
     
     if typ == 'r':
          part_re  = np.random.uniform(re_min, re_max, size=(num))
+         
          part_im  = np.zeros((num))
+         
          # Get Coeffs from +/- [coeff_min, coeff_max]
          sign = np.random.choice([-1,1], size=(num))
-         tmp_min = np.min(np.array([sign*coeff_min, sign*coeff_max]), axis = 0)
-         tmp_max = np.max(np.array([sign*coeff_min, sign*coeff_max]), axis = 0)
+         tmp_min = np.min(np.array([sign*coeff_re_min, sign*coeff_re_max]), axis = 0)
+         tmp_max = np.max(np.array([sign*coeff_re_min, sign*coeff_re_max]), axis = 0)
          coeff_re = np.random.uniform(tmp_min, tmp_max, size=(num)) 
+         
          coeff_im = np.zeros((num))
          
     elif typ == 'c':
         part_re  = np.random.uniform(re_min, re_max, size=(num))
+        
         part_im  = np.random.uniform(im_min, im_max, size=(num))
+        
+        # Get Coeffs from +/- [coeff_min, coeff_max]
         sign = np.random.choice([-1,1], size=(num))
-        tmp_min = np.min(np.array([sign*coeff_min, sign*coeff_max]), axis = 0)
-        tmp_max = np.max(np.array([sign*coeff_min, sign*coeff_max]), axis = 0)
+        tmp_min = np.min(np.array([sign*coeff_re_min, sign*coeff_re_max]), axis = 0)
+        tmp_max = np.max(np.array([sign*coeff_re_min, sign*coeff_re_max]), axis = 0)
         coeff_re = np.random.uniform(tmp_min, tmp_max, size=(num)) 
-        coeff_im = np.random.uniform(-coeff_max, coeff_max, size=(num)) 
+        
+        sign = np.random.choice([-1,1], size=(num))
+        tmp_min = np.min(np.array([sign*coeff_im_min, sign*coeff_im_max]), axis = 0)
+        tmp_max = np.max(np.array([sign*coeff_im_min, sign*coeff_im_max]), axis = 0)
+        coeff_im = np.random.uniform(tmp_min, tmp_max, size=(num)) 
         
     else:
         sys.exit("Undefined type.")

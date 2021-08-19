@@ -10,7 +10,7 @@ Functions, that use SciPy's curve_fit to get pole parameters
 import numpy as np
 from scipy.optimize import curve_fit
 
-from parameters import coeff_max, re_min, re_max, im_min, im_max
+from parameters import coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max
 from lib.pole_objective_functions import objective_1r, objective_1c
 from lib.pole_objective_functions import objective_2r, objective_1r1c, objective_2c
 from lib.pole_objective_functions import objective_3r, objective_2r1c, objective_1r2c, objective_3c
@@ -141,7 +141,7 @@ def get_scipy_pred(pole_class, data_x, data_y, with_bounds=False, p0=None):
         Points to be used for fitting
     
     with_bounds: bool, default=False
-        Shall the fit's parameters be contrained by bounds determined by coeff_min, coeff_max, re_min, re_max, im_min, im_max?
+        Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
     
     p0: list or numpy.ndarray of shape (k,), default=None
         Initial guesses for parameter search
@@ -153,63 +153,63 @@ def get_scipy_pred(pole_class, data_x, data_y, with_bounds=False, p0=None):
     data_y = np.reshape(data_y,(-1))
     
     if pole_class == 0:
-        lower = [re_min, -coeff_max]
-        upper = [re_max, coeff_max]
+        lower = [re_min, -coeff_re_max]
+        upper = [re_max, coeff_re_max]
         params_tmp, _ = curve_fit(objective_1r, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
                       curve_fit(objective_1r, data_x, data_y, maxfev=100000, p0=p0)
         
     elif pole_class == 1:
-        lower = [re_min, im_min, -coeff_max, -coeff_max]
-        upper = [re_max, im_max, coeff_max, coeff_max]
+        lower = [re_min, im_min, -coeff_re_max, -coeff_im_max]
+        upper = [re_max, im_max, coeff_re_max, coeff_im_max]
         params_tmp, _ = curve_fit(objective_1c, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
                       curve_fit(objective_1c, data_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1) 
         
     elif pole_class == 2:
-        lower = [re_min, -coeff_max, re_min, -coeff_max]
-        upper = [re_max, coeff_max, re_max, coeff_max]
+        lower = [re_min, -coeff_re_max, re_min, -coeff_re_max]
+        upper = [re_max, coeff_re_max, re_max, coeff_re_max]
         params_tmp, _ = curve_fit(objective_2r, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
                       curve_fit(objective_2r, data_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1) 
         
     elif pole_class == 3:
-        lower = [re_min, -coeff_max, re_min, im_min, -coeff_max, -coeff_max]
-        upper = [re_max, coeff_max, re_max, im_max, coeff_max, coeff_max]
+        lower = [re_min, -coeff_re_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
+        upper = [re_max, coeff_re_max, re_max, im_max, coeff_re_max, coeff_im_max]
         params_tmp, _ = curve_fit(objective_1r1c, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
                       curve_fit(objective_1r1c, data_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1) 
         
     elif pole_class == 4:
-        lower = [re_min, im_min, -coeff_max, -coeff_max, re_min, im_min, -coeff_max, -coeff_max]
-        upper = [re_max, im_max, coeff_max, coeff_max, re_max, im_max, coeff_max, coeff_max]
+        lower = [re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
+        upper = [re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max]
         params_tmp, _ = curve_fit(objective_2c, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
                       curve_fit(objective_2c, data_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1) 
         
     elif pole_class == 5:
-        lower = [re_min, -coeff_max, re_min, -coeff_max, re_min, -coeff_max]
-        upper = [re_max, coeff_max, re_max, coeff_max, re_max, coeff_max]
+        lower = [re_min, -coeff_re_max, re_min, -coeff_re_max, re_min, -coeff_re_max]
+        upper = [re_max, coeff_re_max, re_max, coeff_re_max, re_max, coeff_re_max]
         params_tmp, _ = curve_fit(objective_3r, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
                       curve_fit(objective_3r, data_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1) 
         
     elif pole_class == 6:
-        lower = [re_min, -coeff_max, re_min, -coeff_max, re_min, im_min, -coeff_max, -coeff_max]
-        upper = [re_max, coeff_max, re_max, coeff_max, re_max, im_max, coeff_max, coeff_max]
+        lower = [re_min, -coeff_re_max, re_min, -coeff_re_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
+        upper = [re_max, coeff_re_max, re_max, coeff_re_max, re_max, im_max, coeff_re_max, coeff_im_max]
         params_tmp, _ = curve_fit(objective_2r1c, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
                       curve_fit(objective_2r1c, data_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1) 
         
     elif pole_class == 7:
-        lower = [re_min, -coeff_max, re_min, im_min, -coeff_max, -coeff_max, re_min, im_min, -coeff_max, -coeff_max]
-        upper = [re_max, coeff_max, re_max, im_max, coeff_max, coeff_max, re_max, im_max, coeff_max, coeff_max]
+        lower = [re_min, -coeff_re_max, re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
+        upper = [re_max, coeff_re_max, re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max]
         params_tmp, _ = curve_fit(objective_1r2c, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
                       curve_fit(objective_1r2c, data_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1)   
         
     elif pole_class == 8:
-        lower = [re_min, im_min, -coeff_max, -coeff_max, re_min, im_min, -coeff_max, -coeff_max, re_min, im_min, -coeff_max, -coeff_max]
-        upper = [re_max, im_max, coeff_max, coeff_max, re_max, im_max, coeff_max, coeff_max, re_max, im_max, coeff_max, coeff_max]
+        lower = [re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
+        upper = [re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max]
         params_tmp, _ = curve_fit(objective_3c, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
                       curve_fit(objective_3c, data_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1) 
@@ -225,7 +225,7 @@ def get_all_scipy_preds(data_x, data_y, with_bounds=False):
         Points to be used for fitting
     
     with_bounds: bool, default=False
-        Shall the fit's parameters be contrained by bounds determined by coeff_min, coeff_max, re_min, re_max, im_min, im_max?
+        Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
     
     returns: list of 9 numpy.ndarrays of shapes (k_i,), i=0...8
         Optimized parameters of the different pole classes
@@ -253,7 +253,7 @@ def get_all_scipy_preds_dataprep(data_x, data_y, labels, with_bounds=False):
         The actual labels/pole classes corresponding to the samples
     
     with_bounds: bool, default=False
-        Shall the fit's parameters be contrained by bounds determined by coeff_min, coeff_max, re_min, re_max, im_min, im_max?
+        Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
     
     returns: 11 numpy.ndarrays of shapes (m,n), (m,1) and (k_i,m) for i=0...8, where m is the number of samples, that could successfully be fitted
         data_y, labels, optimized parameters
