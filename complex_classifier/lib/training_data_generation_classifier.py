@@ -35,13 +35,13 @@ def drop_small_poles(pole_class, pole_params, point_x, fact):
     fact: numeric>=1
         The factor to compare out_re_i from the different poles per sample
         
-    returns: ndarray of shape (k,m*), where m* is the number of left samples
-        Parameters specifying the Pole Configuration and satisfying min(out_re_i)*fact >= max(out_re_i)      
+    returns: ndarray of shape (m,)
+        Specifies, whether each sample shall be dropped or kept        
     '''
     data_x = np.array([point_x])
     
     if pole_class == 0 or pole_class == 1:
-        new_pole_params = pole_params
+        keep_indices = np.arange(np.shape(pole_params)[1])
     elif pole_class == 2 or pole_class == 3 or pole_class == 4:
         params1 = pole_params[0:4,:]
         params2 = pole_params[4:8,:]
@@ -52,7 +52,6 @@ def drop_small_poles(pole_class, pole_params, point_x, fact):
         data_y_2 = np.abs(data_y_2)
         data_y   = np.concatenate((data_y_1, data_y_2), axis=1)
         keep_indices = np.max(data_y, axis=1) <= np.min(data_y, axis=1) * fact
-        new_pole_params = pole_params[:,keep_indices]
     elif pole_class == 5 or pole_class == 6 or pole_class == 7 or pole_class==8:
         params1 = pole_params[0:4,:]
         params2 = pole_params[4:8,:]
@@ -66,8 +65,7 @@ def drop_small_poles(pole_class, pole_params, point_x, fact):
         data_y_3 = np.abs(data_y_3)
         data_y   = np.concatenate((data_y_1, data_y_2, data_y_3), axis=1)
         keep_indices = np.max(data_y, axis=1) <= np.min(data_y, axis=1) * fact
-        new_pole_params = pole_params[:,keep_indices]
-    return new_pole_params
+    return keep_indices
 
 def drop_small_poles_2(pole_class, pole_params, data_x, fact):
     '''
@@ -88,13 +86,13 @@ def drop_small_poles_2(pole_class, pole_params, data_x, fact):
     fact: numeric>=1
         The factor to compare out_re_i from the different poles per sample
         
-    returns: ndarray of shape (k,m*), where m* is the number of left samples
-        Parameters specifying the Pole Configuration and satisfying min(out_re_i)*fact >= max(out_re_i)      
+    returns: ndarray of shape (m,)
+        Specifies, whether each sample shall be dropped or kept       
     '''
     data_x = data_x.reshape(-1)
     
     if pole_class == 0 or pole_class == 1:
-        new_pole_params = pole_params
+        keep_indices = np.arange(np.shape(pole_params)[1])
     elif pole_class == 2 or pole_class == 3 or pole_class == 4:
         params1 = pole_params[0:4,:]
         params2 = pole_params[4:8,:]
@@ -105,7 +103,6 @@ def drop_small_poles_2(pole_class, pole_params, data_x, fact):
         data_y_2 = np.sum(np.abs(data_y_2), axis=1).reshape(-1,1)
         data_y   = np.concatenate((data_y_1, data_y_2), axis=1)
         keep_indices = np.max(data_y, axis=1) <= np.min(data_y, axis=1) * fact
-        new_pole_params = pole_params[:,keep_indices]
     elif pole_class == 5 or pole_class == 6 or pole_class == 7 or pole_class==8:
         params1 = pole_params[0:4,:]
         params2 = pole_params[4:8,:]
@@ -119,8 +116,7 @@ def drop_small_poles_2(pole_class, pole_params, data_x, fact):
         data_y_3 = np.sum(np.abs(data_y_3), axis=1).reshape(-1,1)
         data_y   = np.concatenate((data_y_1, data_y_2, data_y_3), axis=1)
         keep_indices = np.max(data_y, axis=1) <= np.min(data_y, axis=1) * fact
-        new_pole_params = pole_params[:,keep_indices]
-    return new_pole_params
+    return keep_indices
 
 
 def drop_near_poles(pole_class, pole_params, dst_min):
@@ -136,16 +132,15 @@ def drop_near_poles(pole_class, pole_params, dst_min):
     dst_min: numeric>=0
         The minimal allowed distance between (complex) pole positions
         
-    returns: ndarray of shape (k,m*), where m* is the number of left samples
-        Parameters specifying the Pole Configuration and satisfying min(out_re_i)*fact >= max(out_re_i)      
+    returns: ndarray of shape (m,)
+        Specifies, whether each sample shall be dropped or kept      
     '''
     
     if pole_class == 0 or pole_class == 1:
-        new_pole_params = pole_params
+        keep_indices = np.arange(np.shape(pole_params)[1])
     elif pole_class == 2 or pole_class == 3 or pole_class == 4:
         dst_arr = np.sqrt( (pole_params[0,:] - pole_params[4,:])**2 + (pole_params[1,:] - pole_params[5,:])**2 )
         keep_indices = dst_arr > dst_min
-        new_pole_params = pole_params[:,keep_indices]
     elif pole_class == 5 or pole_class == 6 or pole_class == 7 or pole_class==8:
         dst_arr = np.sqrt( (pole_params[0,:] - pole_params[4,:])**2 + (pole_params[1,:] - pole_params[5,:])**2 )
         keep_indices = dst_arr > dst_min
@@ -153,8 +148,7 @@ def drop_near_poles(pole_class, pole_params, dst_min):
         keep_indices *= dst_arr > dst_min
         dst_arr = np.sqrt( (pole_params[4,:] - pole_params[8,:])**2 + (pole_params[5,:] - pole_params[9,:])**2 )
         keep_indices *= dst_arr > dst_min
-        new_pole_params = pole_params[:,keep_indices]
-    return new_pole_params
+    return keep_indices
 
 
 def create_training_data_classifier(length, data_x, with_bounds, data_dir):
@@ -184,25 +178,32 @@ def create_training_data_classifier(length, data_x, with_bounds, data_dir):
     
     # out_re will contain the real part of the pole curves; labels is the labels (0,1,2,..8)
     out_re = []
-    labels = []
+    labels_and_params = []
     for pole_class in pole_classes:
         # Get pole configurations of the current pole class and append them to out_re and labels
         params = get_train_params(pole_class=pole_class, num=num)
-        params = drop_small_poles_2(pole_class=pole_class, pole_params=params, data_x=data_x, fact=fact_classifier)
-        params = drop_near_poles(pole_class=pole_class, pole_params=params, dst_min=dst_min_classifier)
+        params = params[:,drop_small_poles_2(pole_class=pole_class, pole_params=params, data_x=data_x, fact=fact_classifier)]
+        params = params[:,drop_near_poles(pole_class=pole_class, pole_params=params, dst_min=dst_min_classifier)]
         
         out_re.append(pole_curve_calc(pole_class=pole_class, pole_params=params, data_x=data_x))
-        labels.append(np.ones(params.shape[1])*pole_class)
+        
+        # also add the exact parameters to the label, because we may use them later (e.g. for selecting certain samples)
+        labels_and_params.append(np.vstack([np.ones([1,params.shape[1]])*pole_class, params]))
     # Convert lists to numpy arrays
     out_re = np.vstack(out_re)
-    labels = np.hstack(labels)
+    # add padding to the labels/params arrays
+    max_coll = max( [arr.shape[0] for arr in labels_and_params] )
+    for i in range(len(labels_and_params)):
+        fillup = int(max_coll - labels_and_params[i].shape[0])
+        labels_and_params[i] = np.vstack([labels_and_params[i], np.zeros([fillup, labels_and_params[i].shape[1]])])
+    labels_and_params = np.hstack(labels_and_params).transpose()
 
-    print('Maximum number of samples to be created: ', len(labels))
-    
+    print('Maximum number of samples to be created: ', len(labels_and_params))
+
     # Get Scipy predictions for each sample
     print('Getting SciPy predictions...')
-    out_re, labels, params_1r, params_1c, params_2r, params_1r1c, params_2c, \
-    params_3r, params_2r1c, params_1r2c, params_3c = get_all_scipy_preds_dataprep(data_x, out_re, labels, with_bounds=with_bounds)
+    out_re, labels_and_params, params_1r, params_1c, params_2r, params_1r1c, params_2c, \
+    params_3r, params_2r1c, params_1r2c, params_3c = get_all_scipy_preds_dataprep(data_x, out_re, labels_and_params, with_bounds=with_bounds)
     
     # Calculate out_re for the different predicted pole configurations
     out_re_1r   = pole_curve_calc2(pole_class=0, pole_params=params_1r,   data_x=data_x)
@@ -251,17 +252,18 @@ def create_training_data_classifier(length, data_x, with_bounds, data_dir):
     # Get rid of possible infinities that can occurr after log10 for very small MSE below machine accuracy
     mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, \
     params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c, \
-    out_re, labels = drop_not_finite_rows(
+    out_re, labels_and_params = drop_not_finite_rows(
         mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, 
         params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c, 
-        out_re, labels
+        out_re, labels_and_params
         )
     
     # Everything together the gives data_x that is used to train the classifier
     data_x = np.hstack((mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c, out_re))
     
-    # Reshape labels array
-    labels = labels.reshape(-1)
+    # Seperate labels and params array
+    params = labels_and_params[:,1:]
+    labels = labels_and_params[:,0].reshape(-1)
 
     # Standardize Inputs
     data_x = std_data_new(data_x, with_mean=True, std_path=data_dir)
@@ -269,8 +271,10 @@ def create_training_data_classifier(length, data_x, with_bounds, data_dir):
     # Save training data
     np.save(os.path.join(data_dir, 'various_poles_data_classifier_x.npy'), data_x)
     np.save(os.path.join(data_dir, 'various_poles_data_classifier_y.npy'), labels)
+    np.save(os.path.join(data_dir, 'various_poles_data_classifier_params.npy'), params)
     print("Successfully saved x data of shape ", np.shape(data_x))
     print("Successfully saved y data of shape ", np.shape(labels))
+    print("Successfully saved params data of shape ", np.shape(params))
 
     return
 

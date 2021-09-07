@@ -249,18 +249,17 @@ def get_all_scipy_preds_dataprep(data_x, data_y, labels, with_bounds=False):
     data_y: numpy.ndarray of shape (n,) or (m,n), where m is the number of samples
         Function values to be fitted
         
-    labels: numpy.ndarray of shape (n,) or or (1,n)
+    labels: numpy.ndarray of shape (m,) or (m,j)
         The actual labels/pole classes corresponding to the samples
     
     with_bounds: bool, default=False
         Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
     
-    returns: 11 numpy.ndarrays of shapes (m,n), (m,1) and (k_i,m) for i=0...8, where m is the number of samples, that could successfully be fitted
+    returns: 11 numpy.ndarrays of shapes (m,n), (m,1) or (m,j) and (k_i,m) for i=0...8, where m is the number of samples, that could successfully be fitted
         data_y, labels, optimized parameters
     '''
     data_x = data_x.reshape(-1)
     data_y = np.atleast_2d(data_y)
-    labels = labels.reshape(-1)
     
     params_1r   = []
     params_1c   = []
@@ -303,7 +302,6 @@ def get_all_scipy_preds_dataprep(data_x, data_y, labels, with_bounds=False):
             print('An error occured, the sample will be dropped!')
     
     new_data_y = np.array(new_data_y)
-    new_labels = np.array(new_labels).reshape(-1,1)
     params_1r   = np.array(params_1r).transpose()
     params_1c   = np.array(params_1c).transpose()
     params_2r   = np.array(params_2r).transpose()
@@ -313,6 +311,9 @@ def get_all_scipy_preds_dataprep(data_x, data_y, labels, with_bounds=False):
     params_2r1c = np.array(params_2r1c).transpose()
     params_1r2c = np.array(params_1r2c).transpose()
     params_3c   = np.array(params_3c).transpose()
+    new_labels  = np.array(new_labels)
+    if len(new_labels.shape) == 1:
+        new_labels = new_labels.reshape(-1,1)
     
     return new_data_y, new_labels, params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c
 
