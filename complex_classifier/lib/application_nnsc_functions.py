@@ -15,7 +15,7 @@ from lib.scipy_fit_functions import get_scipy_pred
 from parameters import regressor_subdirs
 
 
-def get_nnsc_pred(pole_class, data_x, data_y, with_bounds, model_path):
+def get_nnsc_pred(pole_class, grid_x, data_y, with_bounds, model_path):
     '''
     Find optimal parameters for fitting data to a given Pole Configuration; 
     First get predictions from a NN Regressor, then give them as p0 to scipy curve_fit
@@ -23,7 +23,7 @@ def get_nnsc_pred(pole_class, data_x, data_y, with_bounds, model_path):
     pole_class: int = 0-8 
         The Class of the Pole Configuration    
 
-    data_x, data_y: ndarray of shape (n,) or (1,n)
+    grid_x, data_y: ndarray of shape (n,) or (1,n)
         Points to be used for fitting
     
     with_bounds: bool
@@ -43,17 +43,17 @@ def get_nnsc_pred(pole_class, data_x, data_y, with_bounds, model_path):
     pred_nn   = get_regressor_pred(data_y=data_y, model_path=model_path)[0]
 
     # Scipy Fit
-    pred_nnsc = get_scipy_pred(pole_class=pole_class, data_x=data_x, data_y=data_y, with_bounds=with_bounds, p0=pred_nn)
+    pred_nnsc = get_scipy_pred(pole_class=pole_class, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds, p0=pred_nn)
 
     return pred_nnsc
 
 
-def get_all_nnsc_preds(data_x, data_y, with_bounds, model_path):
+def get_all_nnsc_preds(grid_x, data_y, with_bounds, model_path):
     '''
     Find optimal parameters for fitting data to all 9 different Pole Configurations; 
     First get predictions from a NN Regressor, then give them as p0 to scipy curve_fit
     
-    data_x, data_y: ndarray of shape (n,) or (1,n)
+    grid_x, data_y: ndarray of shape (n,) or (1,n)
         Points to be used for fitting
     
     with_bounds: bool
@@ -77,7 +77,7 @@ def get_all_nnsc_preds(data_x, data_y, with_bounds, model_path):
     for subdir in regressor_subdirs:
         try:
             pred = get_nnsc_pred(model_path=os.path.join(model_path, subdir + '/'), pole_class=int(subdir[0]), 
-                                 data_x=data_x, data_y=data_y, with_bounds=with_bounds)
+                                 grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
         except:
             pred = np.array([])
         preds.append(pred)

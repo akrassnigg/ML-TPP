@@ -83,7 +83,7 @@ if __name__ == '__main__':
     trainer.logger.log_hyperparams(hyperparameters)
     
     trainer.fit(model, datamodule=datamodule)
-    trainer.test(model, datamodule=datamodule)
+    trainer.test(model, datamodule=datamodule, ckpt_path="best")
     
 
 

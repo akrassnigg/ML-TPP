@@ -50,7 +50,7 @@ n_examples_classifier = 300006
 
 # Properties of drop_small_poles and drop_near_poles
 fact_classifier    = np.inf  # set to very large value to not drop any samples
-dst_min_classifier = 0.0  # set to 0 to not drop any samples
+dst_min_classifier = 0.0     # set to 0 to not drop any samples
 
 # Data split
 train_portion_classifier = 0.8

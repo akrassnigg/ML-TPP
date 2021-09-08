@@ -15,7 +15,7 @@ from lib.training_data_generation_classifier import create_training_data_classif
 
 if __name__ == '__main__':
     time1 = time.time()
-    create_training_data_classifier(length=n_examples_classifier, data_x=standard_re, with_bounds=True, data_dir=data_dir_classifier)
+    create_training_data_classifier(length=n_examples_classifier, grid_x=standard_re, with_bounds=True, data_dir=data_dir_classifier)
     print(time.time() - time1)
 
 

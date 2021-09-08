@@ -17,7 +17,7 @@ from lib.training_data_generation_regressor import create_training_data_regresso
 if __name__ == '__main__':
 
     create_training_data_regressor(length=n_examples_regressor, pole_class=class_regressor, mode='preparation', 
-                         data_x=standard_re, data_dir=data_dir_regressor)
+                         grid_x=standard_re, data_dir=data_dir_regressor)
 
 
 

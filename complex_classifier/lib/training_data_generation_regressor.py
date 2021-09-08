@@ -18,7 +18,7 @@ from lib.scipy_fit_functions import pole_config_organize
 from lib.standardization_functions import std_data_new, std_data
 
 
-def create_training_data_regressor(mode, length, pole_class, data_x, data_dir):
+def create_training_data_regressor(mode, length, pole_class, grid_x, data_dir):
     '''
     Creates training data for the NN regressor
     
@@ -35,7 +35,7 @@ def create_training_data_regressor(mode, length, pole_class, data_x, data_dir):
     pole_class: int: 0-8
         The pole class
         
-    data_x: numpy.ndarray of shape (n,) or (1,n)
+    grid_x: numpy.ndarray of shape (n,) or (1,n)
         Gridpoints, where the function/pole configuration shall be evaluated
         
     data_dir: str
@@ -47,7 +47,7 @@ def create_training_data_regressor(mode, length, pole_class, data_x, data_dir):
     # Generate pole configurations
     params = get_train_params(pole_class=pole_class, num=length)
     # Calculate the pole curves
-    out_re = pole_curve_calc(pole_class=pole_class, pole_params=params, data_x=data_x)
+    out_re = pole_curve_calc(pole_class=pole_class, pole_params=params, grid_x=grid_x)
     # Remove rows, that contain only zeros (imaginary parts of real poles)
     params = params[~np.all(params == 0, axis=1)]
     # Organize pole configurations

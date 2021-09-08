@@ -130,14 +130,14 @@ def pole_config_organize(pole_class, pole_params):
 
     return pole_params
 
-def get_scipy_pred(pole_class, data_x, data_y, with_bounds=False, p0=None):
+def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=False, p0=None):
     '''
     Uses Scipy curve_fit to fit different pole classes onto single (!) data sample
     
     pole_class: int = 0-8 
         The class of the pole configuration to be found
     
-    data_x, data_y: numpy.ndarray of shape (n,) or (1,n)
+    grid_x, data_y: numpy.ndarray of shape (n,) or (1,n)
         Points to be used for fitting
     
     with_bounds: bool, default=False
@@ -149,79 +149,79 @@ def get_scipy_pred(pole_class, data_x, data_y, with_bounds=False, p0=None):
     returns: numpy.ndarray of shape (k,)
         Optimized parameters of the chosen pole class
     '''
-    data_x = np.reshape(data_x,(-1))
+    grid_x = np.reshape(grid_x,(-1))
     data_y = np.reshape(data_y,(-1))
     
     if pole_class == 0:
         lower = [re_min, -coeff_re_max]
         upper = [re_max, coeff_re_max]
-        params_tmp, _ = curve_fit(objective_1r, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                      curve_fit(objective_1r, data_x, data_y, maxfev=100000, p0=p0)
+        params_tmp, _ = curve_fit(objective_1r, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
+                      curve_fit(objective_1r, grid_x, data_y, maxfev=100000, p0=p0)
         
     elif pole_class == 1:
         lower = [re_min, im_min, -coeff_re_max, -coeff_im_max]
         upper = [re_max, im_max, coeff_re_max, coeff_im_max]
-        params_tmp, _ = curve_fit(objective_1c, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                      curve_fit(objective_1c, data_x, data_y, maxfev=100000, p0=p0)
+        params_tmp, _ = curve_fit(objective_1c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
+                      curve_fit(objective_1c, grid_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1) 
         
     elif pole_class == 2:
         lower = [re_min, -coeff_re_max, re_min, -coeff_re_max]
         upper = [re_max, coeff_re_max, re_max, coeff_re_max]
-        params_tmp, _ = curve_fit(objective_2r, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                      curve_fit(objective_2r, data_x, data_y, maxfev=100000, p0=p0)
+        params_tmp, _ = curve_fit(objective_2r, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
+                      curve_fit(objective_2r, grid_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1) 
         
     elif pole_class == 3:
         lower = [re_min, -coeff_re_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
         upper = [re_max, coeff_re_max, re_max, im_max, coeff_re_max, coeff_im_max]
-        params_tmp, _ = curve_fit(objective_1r1c, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                      curve_fit(objective_1r1c, data_x, data_y, maxfev=100000, p0=p0)
+        params_tmp, _ = curve_fit(objective_1r1c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
+                      curve_fit(objective_1r1c, grid_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1) 
         
     elif pole_class == 4:
         lower = [re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
         upper = [re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max]
-        params_tmp, _ = curve_fit(objective_2c, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                      curve_fit(objective_2c, data_x, data_y, maxfev=100000, p0=p0)
+        params_tmp, _ = curve_fit(objective_2c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
+                      curve_fit(objective_2c, grid_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1) 
         
     elif pole_class == 5:
         lower = [re_min, -coeff_re_max, re_min, -coeff_re_max, re_min, -coeff_re_max]
         upper = [re_max, coeff_re_max, re_max, coeff_re_max, re_max, coeff_re_max]
-        params_tmp, _ = curve_fit(objective_3r, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                      curve_fit(objective_3r, data_x, data_y, maxfev=100000, p0=p0)
+        params_tmp, _ = curve_fit(objective_3r, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
+                      curve_fit(objective_3r, grid_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1) 
         
     elif pole_class == 6:
         lower = [re_min, -coeff_re_max, re_min, -coeff_re_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
         upper = [re_max, coeff_re_max, re_max, coeff_re_max, re_max, im_max, coeff_re_max, coeff_im_max]
-        params_tmp, _ = curve_fit(objective_2r1c, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                      curve_fit(objective_2r1c, data_x, data_y, maxfev=100000, p0=p0)
+        params_tmp, _ = curve_fit(objective_2r1c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
+                      curve_fit(objective_2r1c, grid_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1) 
         
     elif pole_class == 7:
         lower = [re_min, -coeff_re_max, re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
         upper = [re_max, coeff_re_max, re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max]
-        params_tmp, _ = curve_fit(objective_1r2c, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                      curve_fit(objective_1r2c, data_x, data_y, maxfev=100000, p0=p0)
+        params_tmp, _ = curve_fit(objective_1r2c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
+                      curve_fit(objective_1r2c, grid_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1)   
         
     elif pole_class == 8:
         lower = [re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
         upper = [re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max]
-        params_tmp, _ = curve_fit(objective_3c, data_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                      curve_fit(objective_3c, data_x, data_y, maxfev=100000, p0=p0)
+        params_tmp, _ = curve_fit(objective_3c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
+                      curve_fit(objective_3c, grid_x, data_y, maxfev=100000, p0=p0)
         params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(-1,1)).reshape(-1) 
         
     return params_tmp
 
 
-def get_all_scipy_preds(data_x, data_y, with_bounds=False):
+def get_all_scipy_preds(grid_x, data_y, with_bounds=False):
     '''
     Uses Scipy curve_fit to fit all 9 different pole classes onto a single data sample
     
-    data_x, data_y: numpy.ndarray of shape (n,) or (1,n)
+    grid_x, data_y: numpy.ndarray of shape (n,) or (1,n)
         Points to be used for fitting
     
     with_bounds: bool, default=False
@@ -233,17 +233,17 @@ def get_all_scipy_preds(data_x, data_y, with_bounds=False):
     params = []
     for i in range(9):
         try:
-            params.append(get_scipy_pred(pole_class=i, data_x=data_x, data_y=data_y, with_bounds=with_bounds, p0=None))   
+            params.append(get_scipy_pred(pole_class=i, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds, p0=None))   
         except:
             params.append(np.array([]))
     return params
 
 
-def get_all_scipy_preds_dataprep(data_x, data_y, labels, with_bounds=False):
+def get_all_scipy_preds_dataprep(grid_x, data_y, labels, with_bounds=False):
     '''
     Uses Scipy curve_fit to fit all 9 different pole classes onto multiple data samples for creating data to train a NN. Drops a sample, if there is an error while fitting.
     
-    data_x: numpy.ndarray of shape (n,) or (1,n)
+    grid_x: numpy.ndarray of shape (n,) or (1,n)
         Gridpoints
         
     data_y: numpy.ndarray of shape (n,) or (m,n), where m is the number of samples
@@ -258,7 +258,7 @@ def get_all_scipy_preds_dataprep(data_x, data_y, labels, with_bounds=False):
     returns: 11 numpy.ndarrays of shapes (m,n), (m,1) or (m,j) and (k_i,m) for i=0...8, where m is the number of samples, that could successfully be fitted
         data_y, labels, optimized parameters
     '''
-    data_x = data_x.reshape(-1)
+    grid_x = grid_x.reshape(-1)
     data_y = np.atleast_2d(data_y)
     
     params_1r   = []
@@ -277,15 +277,15 @@ def get_all_scipy_preds_dataprep(data_x, data_y, labels, with_bounds=False):
             print(i)
             data_y_i = data_y[i]
             
-            params_tmp_1r   = get_scipy_pred(pole_class=0, data_x=data_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
-            params_tmp_1c   = get_scipy_pred(pole_class=1, data_x=data_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
-            params_tmp_2r   = get_scipy_pred(pole_class=2, data_x=data_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
-            params_tmp_1r1c = get_scipy_pred(pole_class=3, data_x=data_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
-            params_tmp_2c   = get_scipy_pred(pole_class=4, data_x=data_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
-            params_tmp_3r   = get_scipy_pred(pole_class=5, data_x=data_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
-            params_tmp_2r1c = get_scipy_pred(pole_class=6, data_x=data_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
-            params_tmp_1r2c = get_scipy_pred(pole_class=7, data_x=data_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
-            params_tmp_3c   = get_scipy_pred(pole_class=8, data_x=data_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
+            params_tmp_1r   = get_scipy_pred(pole_class=0, grid_x=grid_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
+            params_tmp_1c   = get_scipy_pred(pole_class=1, grid_x=grid_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
+            params_tmp_2r   = get_scipy_pred(pole_class=2, grid_x=grid_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
+            params_tmp_1r1c = get_scipy_pred(pole_class=3, grid_x=grid_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
+            params_tmp_2c   = get_scipy_pred(pole_class=4, grid_x=grid_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
+            params_tmp_3r   = get_scipy_pred(pole_class=5, grid_x=grid_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
+            params_tmp_2r1c = get_scipy_pred(pole_class=6, grid_x=grid_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
+            params_tmp_1r2c = get_scipy_pred(pole_class=7, grid_x=grid_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
+            params_tmp_3c   = get_scipy_pred(pole_class=8, grid_x=grid_x, data_y=data_y_i, with_bounds=with_bounds, p0=None)
             
             params_1r.append(params_tmp_1r)
             params_1c.append(params_tmp_1c)

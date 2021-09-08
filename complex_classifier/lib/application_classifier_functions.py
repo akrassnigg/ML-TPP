@@ -21,14 +21,14 @@ from lib.pole_classifier import Pole_Classifier
 from lib.curve_calc_functions import pole_curve_calc2
 
 
-def prepare_data9(data_x, data_y, with_bounds=False, do_std=False, std_path=None):
+def prepare_data9(grid_x, data_y, with_bounds=False, do_std=False, std_path=None):
     '''
     Prepare Data (a single sample) for the NN Classifier (9 Classes)
     
     Note: This is used, when the finished classifier is applied to real data. 
     For data generation use lib.training_data_generation_classifier.create_training_data_classifier instead.
     
-    data_x: ndarray of shape (n,) or (1,n), where n is the number of gridpoints
+    grid_x: ndarray of shape (n,) or (1,n), where n is the number of gridpoints
         Gridpoints
     
     data_y: ndarray of shape (n,) or (1,n), where n is the number of gridpoints
@@ -46,65 +46,65 @@ def prepare_data9(data_x, data_y, with_bounds=False, do_std=False, std_path=None
     returns: ndarray of shape (1, 69+n), where n is the number of gridpoints
         contains: mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c, data_y
     '''
-    data_x = data_x.reshape(-1)
+    grid_x = grid_x.reshape(-1)
     data_y = data_y.reshape(-1)
 
     try:
-        params_1r   = get_scipy_pred(pole_class=0, data_x=data_x, data_y=data_y, with_bounds=with_bounds)
+        params_1r   = get_scipy_pred(pole_class=0, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
     except:
         print('An error occured!')
         params_1r = [np.nan, np.nan]
     try:
-        params_1c   = get_scipy_pred(pole_class=1, data_x=data_x, data_y=data_y, with_bounds=with_bounds)
+        params_1c   = get_scipy_pred(pole_class=1, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
     except:
         print('An error occured!')
         params_1c = [np.nan, np.nan, np.nan, np.nan]
     try:
-        params_2r   = get_scipy_pred(pole_class=2, data_x=data_x, data_y=data_y, with_bounds=with_bounds)
+        params_2r   = get_scipy_pred(pole_class=2, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
     except:
         print('An error occured!')
         params_2r = [np.nan, np.nan, np.nan, np.nan]
     try:
-        params_1r1c = get_scipy_pred(pole_class=3, data_x=data_x, data_y=data_y, with_bounds=with_bounds)
+        params_1r1c = get_scipy_pred(pole_class=3, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
     except:
         print('An error occured!')
         params_1r1c = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
     try:
-        params_2c   = get_scipy_pred(pole_class=4, data_x=data_x, data_y=data_y, with_bounds=with_bounds)
+        params_2c   = get_scipy_pred(pole_class=4, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
     except:
         print('An error occured!')
         params_2c = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
     try:
-        params_3r   = get_scipy_pred(pole_class=5, data_x=data_x, data_y=data_y, with_bounds=with_bounds)
+        params_3r   = get_scipy_pred(pole_class=5, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
     except:
         print('An error occured!')
         params_3r = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
     try:
-        params_2r1c = get_scipy_pred(pole_class=6, data_x=data_x, data_y=data_y, with_bounds=with_bounds)
+        params_2r1c = get_scipy_pred(pole_class=6, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
     except:
         print('An error occured!')
         params_2r1c = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
     try:
-        params_1r2c = get_scipy_pred(pole_class=7, data_x=data_x, data_y=data_y, with_bounds=with_bounds)
+        params_1r2c = get_scipy_pred(pole_class=7, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
     except:
         print('An error occured!')
         params_1r2c = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
     try:
-        params_3c   = get_scipy_pred(pole_class=8, data_x=data_x, data_y=data_y, with_bounds=with_bounds)
+        params_3c   = get_scipy_pred(pole_class=8, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
     except:
         print('An error occured!')
         params_3c = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]          
     
     # Calculate predicted curves
-    out_re_1r   = pole_curve_calc2(pole_class=0, pole_params=params_1r, data_x=data_x)
-    out_re_1c   = pole_curve_calc2(pole_class=1, pole_params=params_1c, data_x=data_x)
-    out_re_2r   = pole_curve_calc2(pole_class=2, pole_params=params_2r, data_x=data_x)
-    out_re_1r1c = pole_curve_calc2(pole_class=3, pole_params=params_1r1c, data_x=data_x)
-    out_re_2c   = pole_curve_calc2(pole_class=4, pole_params=params_2c, data_x=data_x)
-    out_re_3r   = pole_curve_calc2(pole_class=5, pole_params=params_3r, data_x=data_x)
-    out_re_2r1c = pole_curve_calc2(pole_class=6, pole_params=params_2r1c, data_x=data_x)
-    out_re_1r2c = pole_curve_calc2(pole_class=7, pole_params=params_1r2c, data_x=data_x)
-    out_re_3c   = pole_curve_calc2(pole_class=8, pole_params=params_3c, data_x=data_x)
+    out_re_1r   = pole_curve_calc2(pole_class=0, pole_params=params_1r, grid_x=grid_x)
+    out_re_1c   = pole_curve_calc2(pole_class=1, pole_params=params_1c, grid_x=grid_x)
+    out_re_2r   = pole_curve_calc2(pole_class=2, pole_params=params_2r, grid_x=grid_x)
+    out_re_1r1c = pole_curve_calc2(pole_class=3, pole_params=params_1r1c, grid_x=grid_x)
+    out_re_2c   = pole_curve_calc2(pole_class=4, pole_params=params_2c, grid_x=grid_x)
+    out_re_3r   = pole_curve_calc2(pole_class=5, pole_params=params_3r, grid_x=grid_x)
+    out_re_2r1c = pole_curve_calc2(pole_class=6, pole_params=params_2r1c, grid_x=grid_x)
+    out_re_1r2c = pole_curve_calc2(pole_class=7, pole_params=params_1r2c, grid_x=grid_x)
+    out_re_3c   = pole_curve_calc2(pole_class=8, pole_params=params_3c, grid_x=grid_x)
     
     # Calculate mse_s
     mse_1r   = np.mean((data_y - out_re_1r)  **2, axis=1)
@@ -137,11 +137,11 @@ def prepare_data9(data_x, data_y, with_bounds=False, do_std=False, std_path=None
     return data_x
 
 
-def get_classifier_preds(data_x, data_y, with_bounds, do_std, model_path):
+def get_classifier_preds(grid_x, data_y, with_bounds, do_std, model_path):
     '''
     Get predictions from trained Pole Classifier(s) 
     
-    data_x: ndarray of shape (n,) or (1,n), where n is the number of gridpoints
+    grid_x: ndarray of shape (n,) or (1,n), where n is the number of gridpoints
         Gridpoints
     
     data_y: ndarray of shape (n,) or (1,n), where n is the number of gridpoints
@@ -163,7 +163,7 @@ def get_classifier_preds(data_x, data_y, with_bounds, do_std, model_path):
         Class Predictions: Hard Averaging, Soft Averaging, Array with Predictions from the individual Checkpoints
     '''
     # Data Preparation
-    data_classifier = prepare_data9(data_y=data_y, data_x=data_x, with_bounds=with_bounds, do_std=do_std, std_path=os.path.join(model_path, 'data/'))
+    data_classifier = prepare_data9(data_y=data_y, grid_x=grid_x, with_bounds=with_bounds, do_std=do_std, std_path=os.path.join(model_path, 'data/'))
     
     # Get predictions from Classifiers
     class_pred = []

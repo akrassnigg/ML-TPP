@@ -64,7 +64,7 @@ if __name__ == '__main__':
                                                     weight_decay=weight_decay_regressor)
         
         
-    datamodule = PoleDataModule_Regressor(pole_class=class_regressor, data_x=standard_re, data_dir=data_dir_regressor, batch_size=batch_size_regressor, 
+    datamodule = PoleDataModule_Regressor(pole_class=class_regressor, grid_x=standard_re, data_dir=data_dir_regressor, batch_size=batch_size_regressor, 
                             train_portion=train_portion_regressor, validation_portion=val_portion_regressor, test_portion=test_portion_regressor)
     
     checkpoint_callback1 = pl.callbacks.ModelCheckpoint(
@@ -107,7 +107,7 @@ if __name__ == '__main__':
     trainer.logger.log_hyperparams(hyperparameters)
     
     trainer.fit(model, datamodule=datamodule)
-    trainer.test(model, datamodule=datamodule)
+    trainer.test(model, datamodule=datamodule, ckpt_path="best")
 
 
 
