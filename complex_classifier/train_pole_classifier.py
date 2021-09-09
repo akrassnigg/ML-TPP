@@ -10,7 +10,7 @@ Classifier based on pytorch basic template: Training file
 """
 import time
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import WandbLogger  
 
 from parameters import train_portion_classifier, val_portion_classifier, test_portion_classifier
 from parameters import architecture_classifier, hidden_dim_1_classifier, in_features_classifier, out_features_classifier
@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     model_timestamp = int(time.time())
 
-    tb_logger = TensorBoardLogger(log_dir_classifier, name='poles-classifier', version=model_timestamp)
+    logger = WandbLogger(project="test_project")
     
     model = Pole_Classifier(
                 weight_decay  = weight_decay_classifier,
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     )
     
     trainer = pl.Trainer(
-        logger=tb_logger,
+        logger=logger,
         val_check_interval=1,
         callbacks=[checkpoint_callback1, checkpoint_callback2],
         max_epochs=epochs_classifier,

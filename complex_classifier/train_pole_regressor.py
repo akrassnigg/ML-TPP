@@ -9,7 +9,7 @@ Regressor based on pytorch basic template: Training file
 """
 import time
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import WandbLogger  
 from pytorch_lightning.callbacks import EarlyStopping
 
 from parameters import class_regressor
@@ -29,7 +29,7 @@ from lib.pole_regressor import Pole_Regressor, PoleDataModule_Regressor
 ##############################################################################
 if __name__ == '__main__':
     model_timestamp = int(time.time())    
-    tb_logger = TensorBoardLogger(log_dir_regressor, name='ml-tpp-regressor', version=model_timestamp)
+    logger = WandbLogger(project="test_project")
     
     ### Dataset-specific parameters
     in_features  = in_features_regressor
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     )
     
     trainer = pl.Trainer(
-        logger=tb_logger,
+        logger=logger,
         val_check_interval=val_check_interval,
         callbacks=[checkpoint_callback1, checkpoint_callback2],
         max_epochs=epochs_regressor,
