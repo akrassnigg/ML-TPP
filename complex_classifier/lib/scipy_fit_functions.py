@@ -130,7 +130,10 @@ def pole_config_organize(pole_class, pole_params):
 
     return pole_params
 
-def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=False, p0=None):
+def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=False, p0=None,
+                   re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                   coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                   coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min):
     '''
     Uses Scipy curve_fit to fit different pole classes onto single (!) data sample
     
@@ -145,6 +148,9 @@ def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=False, p0=None):
     
     p0: list or numpy.ndarray of shape (k,), default=None
         Initial guesses for parameter search
+        
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric, defaults read from parameters file
+        Define a box. Parameter configurations outside this box are dropped
     
     returns: numpy.ndarray of shape (k,)
         Optimized parameters of the chosen pole class

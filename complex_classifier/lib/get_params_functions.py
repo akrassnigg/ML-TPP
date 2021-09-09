@@ -13,7 +13,10 @@ import sys
 from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
 
 
-def get_params(num, typ: str):
+def get_params(num, typ: str,
+               re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+               coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+               coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min):
     '''
     Generates parameters of real or cc pole pairs. 
     
@@ -25,6 +28,9 @@ def get_params(num, typ: str):
         
     typ: str: 'r' or 'c'
         Shall the generated poles be real or cc pairs?
+        
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric, defaults read from parameters file
+        Define a box. Parameter configurations outside this box are dropped
         
     returns: numpy.ndarray of shape (4,num)
         The generated pole configurations

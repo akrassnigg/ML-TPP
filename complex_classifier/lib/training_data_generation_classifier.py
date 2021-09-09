@@ -123,6 +123,60 @@ def drop_small_poles_2(pole_class, pole_params, grid_x, fact):
     return keep_indices
 
 
+def drop_small_poles_abs(pole_class, pole_params, grid_x, cutoff):
+    '''
+    Drops parameter configureations, that contain poles, whose sum(abs(out_re)) is smaller than a cutoff
+    
+    pole_class: int = 0-8
+        The Class of the Pole Configuration
+    
+    pole_params: ndarray of shape (k,m), where m is the number of samples
+        Parameters specifying the Pole Configuration
+        
+    grid_x: numpy.ndarray of shape (n,) or (1,n)
+        Gridpoints, where the function/pole configuration shall be evaluated
+        
+    cutoff: numeric>=0
+        The cutoff to compare to sum(abs(out_re_i)) from the different poles per sample
+        
+    returns: ndarray of shape (m,)
+        Specifies, whether each sample shall be dropped or kept       
+    '''
+    grid_x = grid_x.reshape(-1)
+    
+    if pole_class == 0 or pole_class == 1:
+        params1 = pole_params[0:4,:]
+        
+        data_y_1 = pole_curve_calc(pole_class=1, pole_params=params1, grid_x=grid_x)
+        data_y_1 = np.sum(np.abs(data_y_1), axis=1).reshape(-1,1)
+        keep_indices = cutoff < data_y_1
+    elif pole_class == 2 or pole_class == 3 or pole_class == 4:
+        params1 = pole_params[0:4,:]
+        params2 = pole_params[4:8,:]
+        
+        data_y_1 = pole_curve_calc(pole_class=1, pole_params=params1, grid_x=grid_x)
+        data_y_2 = pole_curve_calc(pole_class=1, pole_params=params2, grid_x=grid_x)
+        data_y_1 = np.sum(np.abs(data_y_1), axis=1).reshape(-1,1)
+        data_y_2 = np.sum(np.abs(data_y_2), axis=1).reshape(-1,1)
+        keep_indices  = cutoff < data_y_1
+        keep_indices *= cutoff < data_y_2
+    elif pole_class == 5 or pole_class == 6 or pole_class == 7 or pole_class==8:
+        params1 = pole_params[0:4,:]
+        params2 = pole_params[4:8,:]
+        params3 = pole_params[8:12,:]
+        
+        data_y_1 = pole_curve_calc(pole_class=1, pole_params=params1, grid_x=grid_x)
+        data_y_2 = pole_curve_calc(pole_class=1, pole_params=params2, grid_x=grid_x)
+        data_y_3 = pole_curve_calc(pole_class=1, pole_params=params3, grid_x=grid_x)
+        data_y_1 = np.sum(np.abs(data_y_1), axis=1).reshape(-1,1)
+        data_y_2 = np.sum(np.abs(data_y_2), axis=1).reshape(-1,1)
+        data_y_3 = np.sum(np.abs(data_y_3), axis=1).reshape(-1,1)
+        keep_indices  = cutoff < data_y_1
+        keep_indices *= cutoff < data_y_2
+        keep_indices *= cutoff < data_y_3
+    return keep_indices
+
+
 def drop_near_poles(pole_class, pole_params, dst_min):
     '''
     Drops parameter configureations, that contain poles, whose positions are nearer to each other than dst_min (complex, euclidean norm)

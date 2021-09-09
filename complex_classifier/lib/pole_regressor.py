@@ -131,7 +131,10 @@ def myL1(y_hat, y, std_path):
                                      std_path=std_path, name_var='variances_params.npy', name_mean='means_params.npy'))
     return F.l1_loss(y_hat, y)
 
-def myL1_norm(y_hat, y, pole_class, std_path):
+def myL1_norm(y_hat, y, pole_class, std_path,
+              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min):
     '''
     Removes standardization from y and y_hat, normalizes their elements to [0,1] and returns the L1 error
     
@@ -143,6 +146,9 @@ def myL1_norm(y_hat, y, pole_class, std_path):
         
     std_path: str
         Path to the folder, where variances and means files shall be stored
+        
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric, defaults read from parameters file
+        Define a box. Parameter configurations outside this box are dropped
         
     return: scalar torch.Tensor
         The L1 loss/error
