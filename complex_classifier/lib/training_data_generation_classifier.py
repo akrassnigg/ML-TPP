@@ -354,6 +354,9 @@ def drop_classifier_samples_afterwards(with_mean, data_dir, grid_x=standard_re, 
     data_x = np.load(os.path.join(data_dir, "various_poles_data_classifier_x.npy"), allow_pickle=True).astype('float32')
     labels = np.load(os.path.join(data_dir, "various_poles_data_classifier_y.npy"), allow_pickle=True).astype('int64').reshape((-1,1))
     params = np.load(os.path.join(data_dir, "various_poles_data_classifier_params.npy"), allow_pickle=True).astype('float32')
+    print("Successfully loaded x data of shape ", np.shape(data_x))
+    print("Successfully loaded y data of shape ", np.shape(labels))
+    print("Successfully loaded params data of shape ", np.shape(params))
 
     # Remove standardization from data_x
     data_x = rm_std_data(data=data_x, with_mean=with_mean, std_path=data_dir, name_var="variances.npy", name_mean="means.npy")

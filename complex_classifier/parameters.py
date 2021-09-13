@@ -47,6 +47,7 @@ models_dir_classifier = dir_classifier + 'models/'
 
 # Number of data points
 n_examples_classifier = 300006
+experimental_num_use_data_classifier = 0# set to 0 to use all data available
 
 # Properties of drop_small_poles and drop_near_poles
 fact_classifier    = np.inf  # set to very large value to not drop any samples

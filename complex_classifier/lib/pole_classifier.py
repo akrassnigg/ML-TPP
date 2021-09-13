@@ -27,13 +27,28 @@ from lib.architectures import FC1
 ##############################################################################
 
 class PoleDataSet_Classifier(Dataset):
-    def __init__(self, data_dir):
+    def __init__(self, data_dir, num_use_data):
         self.data_X = np.load(os.path.join(data_dir, "various_poles_data_classifier_x.npy"), allow_pickle=True).astype('float32')
-        self.data_Y = np.load(os.path.join(data_dir, "various_poles_data_classifier_y.npy"), allow_pickle=True).astype('int64').reshape((-1,1))
+        self.data_Y = np.load(os.path.join(data_dir, "various_poles_data_classifier_y.npy"), allow_pickle=True).astype('int64').reshape((-1,1)) 
         
         print("Checking shape of loaded data: X: ", np.shape(self.data_X))
         print("Checking shape of loaded data: y: ", np.shape(self.data_Y))
-
+        
+        if num_use_data ==0:   #use all data available
+            None
+        else:
+            seed_afterward = np.random.randint(low=0, high=1e3)
+            np.random.seed(1234)
+            indices = np.arange(len(self.data_Y))
+            np.random.shuffle(indices)
+            indices = indices[0:num_use_data]
+            np.random.seed(seed_afterward)
+            self.data_X = self.data_X[indices]
+            self.data_Y = self.data_Y[indices]
+            print('Successfully selected a Subset of the Data...')
+            print("Checking shape of data: X Subset: ", np.shape(self.data_X))
+            print("Checking shape of data: y Subset: ", np.shape(self.data_Y))
+        
     def __len__(self):
         num_of_data_points = len(self.data_X)
         print("Successfully loaded pole training data of length: ", num_of_data_points)
@@ -44,17 +59,18 @@ class PoleDataSet_Classifier(Dataset):
 
 
 class PoleDataModule_Classifier(pl.LightningDataModule):
-    def __init__(self, data_dir: str, batch_size: int, train_portion: float, validation_portion: float, test_portion: float):
+    def __init__(self, data_dir: str, batch_size: int, train_portion: float, validation_portion: float, test_portion: float, num_use_data):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.train_portion = train_portion
         self.validation_portion = validation_portion
         self.test_portion = test_portion
+        self.num_use_data = num_use_data
 
     def setup(self, stage):
-        all_data = PoleDataSet_Classifier(self.data_dir)
-        
+        all_data = PoleDataSet_Classifier(self.data_dir, num_use_data=self.num_use_data)
+            
         num_data = len(all_data)
         print("Length of all_data: ", num_data)
         

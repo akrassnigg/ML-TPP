@@ -11,11 +11,13 @@ Classifier based on pytorch basic template: Training file
 import time
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger  
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from parameters import train_portion_classifier, val_portion_classifier, test_portion_classifier
 from parameters import architecture_classifier, hidden_dim_1_classifier, in_features_classifier, out_features_classifier
 from parameters import weight_decay_classifier, batch_size_classifier, learning_rate_classifier, epochs_classifier
 from parameters import data_dir_classifier, log_dir_classifier, models_dir_classifier
+from parameters import experimental_num_use_data_classifier 
 from lib.pole_classifier import Pole_Classifier, PoleDataModule_Classifier
 
 
@@ -42,7 +44,7 @@ if __name__ == '__main__':
                 )
                 
     datamodule = PoleDataModule_Classifier(data_dir=data_dir_classifier, batch_size=batch_size_classifier, 
-                                train_portion=train_portion_classifier, validation_portion=val_portion_classifier, test_portion=test_portion_classifier)
+                                train_portion=train_portion_classifier, validation_portion=val_portion_classifier, test_portion=test_portion_classifier, num_use_data=experimental_num_use_data_classifier)
     
     checkpoint_callback1 = pl.callbacks.ModelCheckpoint(
         dirpath = models_dir_classifier,
@@ -60,10 +62,12 @@ if __name__ == '__main__':
         save_last= True
     )
     
+    early_stop_callback = EarlyStopping(monitor="val_acc", min_delta=0.00, patience=10, mode="max")
+    
     trainer = pl.Trainer(
         logger=logger,
-        val_check_interval=1,
-        callbacks=[checkpoint_callback1, checkpoint_callback2],
+        #val_check_interval=1,
+        callbacks=[checkpoint_callback1, checkpoint_callback2, early_stop_callback],
         max_epochs=epochs_classifier,
         gpus=1
     )
