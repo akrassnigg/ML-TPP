@@ -88,7 +88,9 @@ class PoleDataModule_Classifier(pl.LightningDataModule):
         self.test_dataset = test_part
         
         self.train_weights = self.get_train_weights()
-        print('Label weights:')
+        self.val_weights   = self.get_val_weights()
+        self.test_weights  = self.get_test_weights()
+        print('Training Class weights:')
         print(self.label_weights)
         
     def get_train_weights(self):
@@ -110,16 +112,62 @@ class PoleDataModule_Classifier(pl.LightningDataModule):
         
         train_weights = train_weights.reshape(-1)
         return train_weights
+    
+    def get_val_weights(self):
+        #get val weights for weighted random sampler
+        val_labels = self.val_dataset[:][1]
+        max_label    = np.max(val_labels)
+        print('Number of Classes: ', max_label+1)
+        
+        label_counter = []
+        for i in range(max_label+1):
+            label_counter.append((val_labels == i).sum())
+        
+        label_counter = np.array(label_counter)
+        label_weights = 1/label_counter
+        
+        val_weights = val_labels.astype('float32')
+        for i in range(max_label+1):
+            val_weights[val_weights==i] = label_weights[i]
+        
+        val_weights = val_weights.reshape(-1)
+        return val_weights
+    
+    def get_test_weights(self):
+        #get test weights for weighted random sampler
+        test_labels = self.test_dataset[:][1]
+        max_label    = np.max(test_labels)
+        print('Number of Classes: ', max_label+1)
+        
+        label_counter = []
+        for i in range(max_label+1):
+            label_counter.append((test_labels == i).sum())
+        
+        label_counter = np.array(label_counter)
+        label_weights = 1/label_counter
+        
+        test_weights = test_labels.astype('float32')
+        for i in range(max_label+1):
+            test_weights[test_weights==i] = label_weights[i]
+        
+        test_weights = test_weights.reshape(-1)
+        return test_weights
 
     def train_dataloader(self):
         sampler = WeightedRandomSampler(weights=self.train_weights, num_samples=len(self.train_weights))
         return DataLoader(self.train_dataset, batch_size=self.batch_size, sampler=sampler)
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.batch_size)
+        sampler = WeightedRandomSampler(weights=self.val_weights, num_samples=len(self.val_weights), generator=torch.Generator().manual_seed(1234))
+        return DataLoader(self.val_dataset, batch_size=self.batch_size, sampler=sampler)
 
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size)
+        sampler = WeightedRandomSampler(weights=self.test_weights, num_samples=len(self.test_weights), generator=torch.Generator().manual_seed(1234))
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, sampler=sampler)
+    
+    def predict_dataloader(self):
+        sampler = WeightedRandomSampler(weights=self.test_weights, num_samples=len(self.test_weights), generator=torch.Generator().manual_seed(1234))
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, sampler=sampler)
 
     
 ##############################################################################
