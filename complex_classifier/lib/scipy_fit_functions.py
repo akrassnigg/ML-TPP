@@ -256,7 +256,8 @@ def get_all_scipy_preds_dataprep(grid_x, data_y, labels, with_bounds=False):
         Function values to be fitted
         
     labels: numpy.ndarray of shape (m,) or (m,j)
-        The actual labels/pole classes corresponding to the samples
+        The actual labels/pole classes corresponding to the samples; may also contain the parameters of the sample. 
+        Note: This is only handed to this function, so samples that couldn't be fitted can be dropped from it accordingly.
     
     with_bounds: bool, default=False
         Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?

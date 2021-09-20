@@ -69,7 +69,7 @@ if __name__ == '__main__':
         save_last= True
     )
     
-    early_stop_callback = EarlyStopping(monitor="val_acc", min_delta=0.00, patience=5, mode="max")
+    early_stop_callback = EarlyStopping(monitor="val_acc", min_delta=0.00, patience=10, mode="max")
     
     trainer = pl.Trainer(
         logger=logger,

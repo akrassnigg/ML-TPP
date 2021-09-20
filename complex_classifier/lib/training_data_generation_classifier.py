@@ -409,8 +409,8 @@ def create_training_data_classifier(length, grid_x, with_bounds, data_dir):
     '''
     Creates training data for the NN classifier and saves it to the disk
     
-    length: int>0
-        The number of samples to be generated
+    length: int>0 or a list of ints>=0
+        The number of samples to be generated (per class if length is a list)
         
     grid_x: numpy.ndarray of shape (n,) or (1,n)
         Gridpoints, where the function/pole configuration shall be evaluated
@@ -426,20 +426,24 @@ def create_training_data_classifier(length, grid_x, with_bounds, data_dir):
     # List of the pole classes
     pole_classes = [0,1,2,3,4,5,6,7,8]
     
-    # calculate the number of samples per class and the rest
-    num  = int(np.floor(length/len(pole_classes)))
+    if isinstance(length, list):
+        nums = length
+    else:
+        # calculate the number of samples per class
+        num  = int(np.floor(length/len(pole_classes)))
+        nums = [num for i in range(len(pole_classes))]
     
     # out_re will contain the real part of the pole curves; labels is the labels (0,1,2,..8)
     out_re = []
     labels_and_params = []
     for pole_class in pole_classes:
         # Get pole configurations of the current pole class and append them to out_re and labels
-        params = get_train_params(pole_class=pole_class, num=num)
+        params = get_train_params(pole_class=pole_class, num=nums[pole_class])
         params = params[:,drop_small_poles_2(pole_class=pole_class, pole_params=params, grid_x=grid_x, fact=fact_classifier)]
         params = params[:,drop_near_poles(pole_class=pole_class, pole_params=params, dst_min=dst_min_classifier)]
         
         out_re.append(pole_curve_calc(pole_class=pole_class, pole_params=params, grid_x=grid_x))
-        
+
         # also add the exact parameters to the label, because we may use them later (e.g. for selecting certain samples)
         labels_and_params.append(np.vstack([np.ones([1,params.shape[1]])*pole_class, params]))
     # Convert lists to numpy arrays
