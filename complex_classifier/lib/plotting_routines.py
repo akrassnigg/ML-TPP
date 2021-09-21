@@ -54,8 +54,8 @@ def classifier_plot(labels, predictions, norm_ax=0, do_return=False):
     fig = plt.gcf()
     ax  = plt.gca() 
     fig.set_size_inches(10, 10)
-    for x in range(9):
-        for y in range(9):
+    for x in range(max(labels)+1):
+        for y in range(max(labels)+1):
             ax.text(x, y, "{:.2f}".format(np.round(count[y,x], decimals=2)), horizontalalignment='center', verticalalignment='center')
     if do_return:
         return fig, ax

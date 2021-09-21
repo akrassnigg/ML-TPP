@@ -49,7 +49,7 @@ class PoleDataSet_Classifier(Dataset):
                 new_data_Y.append(np.ones((num_use_data[label],1))*label)
                 np.random.seed(seed_afterward)
             self.data_X = np.vstack(new_data_X)
-            self.data_Y = np.vstack(new_data_Y)
+            self.data_Y = np.vstack(new_data_Y).astype('int64')
         else:
             seed_afterward = np.random.randint(low=0, high=1e3)
             np.random.seed(1234)
@@ -131,7 +131,6 @@ class PoleDataModule_Classifier(pl.LightningDataModule):
         #get val weights for weighted random sampler
         val_labels = self.val_dataset[:][1]
         max_label    = np.max(val_labels)
-        print('Number of Classes: ', max_label+1)
         
         label_counter = []
         for i in range(max_label+1):
@@ -151,7 +150,6 @@ class PoleDataModule_Classifier(pl.LightningDataModule):
         #get test weights for weighted random sampler
         test_labels = self.test_dataset[:][1]
         max_label    = np.max(test_labels)
-        print('Number of Classes: ', max_label+1)
         
         label_counter = []
         for i in range(max_label+1):
