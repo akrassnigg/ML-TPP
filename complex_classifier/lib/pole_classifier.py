@@ -20,6 +20,7 @@ from pytorch_lightning.metrics.functional import accuracy
 from torch.utils.data import WeightedRandomSampler
 
 from lib.architectures import FC1
+from parameters import out_features_classifier
 
 
 ##############################################################################
@@ -36,6 +37,19 @@ class PoleDataSet_Classifier(Dataset):
         
         if num_use_data ==0:   #use all data available
             None
+        elif isinstance(num_use_data, list):
+            new_data_X = []
+            new_data_Y = []
+            for label in range(out_features_classifier):
+                seed_afterward = np.random.randint(low=0, high=1e3)
+                np.random.seed(1234)
+                data_x_i = ( self.data_X[self.data_Y.reshape(-1)==label] ).copy()
+                np.random.shuffle(data_x_i)
+                new_data_X.append(data_x_i[0:num_use_data[label]])
+                new_data_Y.append(np.ones((num_use_data[label],1))*label)
+                np.random.seed(seed_afterward)
+            self.data_X = np.vstack(new_data_X)
+            self.data_Y = np.vstack(new_data_Y)
         else:
             seed_afterward = np.random.randint(low=0, high=1e3)
             np.random.seed(1234)
