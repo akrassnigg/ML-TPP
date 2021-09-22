@@ -45,15 +45,13 @@ def create_training_data_regressor(mode, length, pole_class, grid_x, data_dir):
         see: mode
     '''
     # Generate pole configurations
-    params = get_train_params(pole_class=pole_class, num=length)
+    params = get_train_params(pole_class=pole_class, m=length)
     # Calculate the pole curves
     out_re = pole_curve_calc(pole_class=pole_class, pole_params=params, grid_x=grid_x)
-    # Remove rows, that contain only zeros (imaginary parts of real poles)
-    params = params[~np.all(params == 0, axis=1)]
+    # Remove collumns, that contain only zeros (imaginary parts of real poles)
+    params = params[:,~np.all(params == 0, axis=0)]
     # Organize pole configurations
     params = pole_config_organize(pole_class=pole_class, pole_params=params)
-    # Transpose params
-    params = params.transpose()
 
     if mode == 'preparation':
         # Create initial data for training      

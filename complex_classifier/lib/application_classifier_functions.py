@@ -14,7 +14,7 @@ import scipy
 import sys
 
 from lib.standardization_functions import std_data
-from lib.scipy_fit_functions import get_scipy_pred
+from lib.scipy_fit_functions import get_all_scipy_preds
 from lib.pole_objective_functions import complex_conjugate_pole_pair_obj
 from lib.architectures import FC1
 from lib.pole_classifier import Pole_Classifier
@@ -49,51 +49,17 @@ def prepare_data9(grid_x, data_y, with_bounds=False, do_std=False, std_path=None
     grid_x = grid_x.reshape(-1)
     data_y = data_y.reshape(-1)
 
-    try:
-        params_1r   = get_scipy_pred(pole_class=0, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
-    except:
-        print('An error occured!')
-        params_1r = [np.nan, np.nan]
-    try:
-        params_1c   = get_scipy_pred(pole_class=1, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
-    except:
-        print('An error occured!')
-        params_1c = [np.nan, np.nan, np.nan, np.nan]
-    try:
-        params_2r   = get_scipy_pred(pole_class=2, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
-    except:
-        print('An error occured!')
-        params_2r = [np.nan, np.nan, np.nan, np.nan]
-    try:
-        params_1r1c = get_scipy_pred(pole_class=3, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
-    except:
-        print('An error occured!')
-        params_1r1c = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
-    try:
-        params_2c   = get_scipy_pred(pole_class=4, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
-    except:
-        print('An error occured!')
-        params_2c = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
-    try:
-        params_3r   = get_scipy_pred(pole_class=5, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
-    except:
-        print('An error occured!')
-        params_3r = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
-    try:
-        params_2r1c = get_scipy_pred(pole_class=6, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
-    except:
-        print('An error occured!')
-        params_2r1c = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
-    try:
-        params_1r2c = get_scipy_pred(pole_class=7, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
-    except:
-        print('An error occured!')
-        params_1r2c = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
-    try:
-        params_3c   = get_scipy_pred(pole_class=8, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
-    except:
-        print('An error occured!')
-        params_3c = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]          
+    # Get SciPy predictions
+    params_tmp = get_all_scipy_preds(grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
+    params_1r   = np.array(params_tmp[0]).reshape(1,-1)
+    params_1c   = np.array(params_tmp[1]).reshape(1,-1)
+    params_2r   = np.array(params_tmp[2]).reshape(1,-1)
+    params_1r1c = np.array(params_tmp[3]).reshape(1,-1)
+    params_2c   = np.array(params_tmp[4]).reshape(1,-1)
+    params_3r   = np.array(params_tmp[5]).reshape(1,-1)
+    params_2r1c = np.array(params_tmp[6]).reshape(1,-1)
+    params_1r2c = np.array(params_tmp[7]).reshape(1,-1)
+    params_3c   = np.array(params_tmp[8]).reshape(1,-1)
     
     # Calculate predicted curves
     out_re_1r   = pole_curve_calc2(pole_class=0, pole_params=params_1r, grid_x=grid_x)

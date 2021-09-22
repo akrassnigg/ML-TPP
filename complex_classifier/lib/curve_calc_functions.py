@@ -28,7 +28,7 @@ def pole_curve_calc(pole_class, pole_params, grid_x):
     pole_class: int = 0-8 
         The class of the pole configuration
     
-    pole_params: numpy.ndarray of shape (k,m), where m is the number of samples and k depends on the pole_class (e.g k=4 for pole_class=0)
+    pole_params: numpy.ndarray of shape (m,k), where m is the number of samples and k depends on the pole_class (e.g k=4 for pole_class=0)
         Parameters specifying the pole configuration
     
     grid_x: numpy.ndarray of shape (n,) or (1,n)
@@ -38,6 +38,7 @@ def pole_curve_calc(pole_class, pole_params, grid_x):
         Function values, i.e. the 'y-values'
     '''
     grid_x = np.reshape(grid_x, (-1))  
+    pole_params = pole_params.transpose()
     
     if pole_class == 0:
         params_1r = pole_params
@@ -85,7 +86,7 @@ def pole_curve_calc2(pole_class, pole_params, grid_x):
     pole_class: int = 0-8 
         The class of the pole configuration
     
-    pole_params: numpy.ndarray of shape (k,m), where m is the number of samples and k depends on the pole_class (e.g k=2 for pole_class=0)
+    pole_params: numpy.ndarray of shape (m,k), where m is the number of samples and k depends on the pole_class (e.g k=2 for pole_class=0)
         Parameters specifying the pole configuration
     
     grid_x: numpy.ndarray of shape (n,) or (1,n)
@@ -95,6 +96,7 @@ def pole_curve_calc2(pole_class, pole_params, grid_x):
         Function values, i.e. the 'y-values'
     '''
     grid_x = np.reshape(grid_x, (-1))  
+    pole_params = pole_params.transpose()
     
     if pole_class == 0:
         params_1r = pole_params
