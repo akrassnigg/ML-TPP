@@ -304,7 +304,7 @@ def get_all_scipy_preds_dataprep(grid_x, data_y, with_bounds=False):
     def get_all_scipy_preds_tmp(data_y_fun):
         return get_all_scipy_preds(grid_x=grid_x, data_y=data_y_fun, with_bounds=with_bounds)
     
-    params_tmp = Parallel(n_jobs=-1, backend="loky")(
+    params_tmp = Parallel(n_jobs=-1, backend="loky", verbose=10)(
                  map(delayed(get_all_scipy_preds_tmp), list(data_y)))
    
     params_1r   = [tmp[0] for tmp in params_tmp]
