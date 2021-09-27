@@ -14,9 +14,13 @@ from joblib import Parallel, delayed
 import multiprocessing
 
 from parameters import coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max
+from parameters import xtol
 from lib.pole_objective_functions import objective_1r, objective_1c
 from lib.pole_objective_functions import objective_2r, objective_1r1c, objective_2c
 from lib.pole_objective_functions import objective_3r, objective_2r1c, objective_1r2c, objective_3c
+from lib.pole_objective_functions import objective_1r_jac, objective_1c_jac
+from lib.pole_objective_functions import objective_2r_jac, objective_1r1c_jac, objective_2c_jac
+from lib.pole_objective_functions import objective_3r_jac, objective_2r1c_jac, objective_1r2c_jac, objective_3c_jac
 
 
 def pole_config_organize(pole_class, pole_params):
@@ -154,7 +158,7 @@ def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=False, p0=None,
         Initial guesses for parameter search
         
     re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric, defaults read from parameters file
-        Define a box. Parameter configurations outside this box are dropped
+        Define a box. Parameter configurations are searched in this box if with_bounds=True
     
     returns: numpy.ndarray of shape (k,)
         Optimized parameters of the chosen pole class or nans if the fit failed
@@ -162,12 +166,17 @@ def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=False, p0=None,
     grid_x = np.reshape(grid_x,(-1))
     data_y = np.reshape(data_y,(-1))
     
+    if isinstance(xtol, list):
+        xtol0, xtol1, xtol2, xtol3, xtol4, xtol5, xtol6, xtol7, xtol8 = xtol
+    else:
+        xtol0, xtol1, xtol2, xtol3, xtol4, xtol5, xtol6, xtol7, xtol8 = [xtol for i in range(9)]
+    
     if pole_class == 0:
         try:
             lower = [re_min, -coeff_re_max]
             upper = [re_max, coeff_re_max]
-            params_tmp, _ = curve_fit(objective_1r, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                          curve_fit(objective_1r, grid_x, data_y, maxfev=100000, p0=p0)
+            params_tmp, _ = curve_fit(objective_1r, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0, jac=objective_1r_jac, xtol=xtol0) if with_bounds else \
+                          curve_fit(objective_1r, grid_x, data_y, maxfev=100000, p0=p0, jac=objective_1r_jac, xtol=xtol0)
         except:
             print('An error occured, the sample will be dropped!')
             params_tmp = np.array([np.nan for i in range(2)])
@@ -176,8 +185,8 @@ def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=False, p0=None,
         try:
             lower = [re_min, im_min, -coeff_re_max, -coeff_im_max]
             upper = [re_max, im_max, coeff_re_max, coeff_im_max]
-            params_tmp, _ = curve_fit(objective_1c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                          curve_fit(objective_1c, grid_x, data_y, maxfev=100000, p0=p0)
+            params_tmp, _ = curve_fit(objective_1c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0, jac=objective_1c_jac, xtol=xtol1) if with_bounds else \
+                          curve_fit(objective_1c, grid_x, data_y, maxfev=100000, p0=p0, jac=objective_1c_jac, xtol=xtol1)
             params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
         except:
             print('An error occured, the sample will be dropped!')
@@ -187,8 +196,8 @@ def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=False, p0=None,
         try:
             lower = [re_min, -coeff_re_max, re_min, -coeff_re_max]
             upper = [re_max, coeff_re_max, re_max, coeff_re_max]
-            params_tmp, _ = curve_fit(objective_2r, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                          curve_fit(objective_2r, grid_x, data_y, maxfev=100000, p0=p0)
+            params_tmp, _ = curve_fit(objective_2r, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0, jac=objective_2r_jac, xtol=xtol2) if with_bounds else \
+                          curve_fit(objective_2r, grid_x, data_y, maxfev=100000, p0=p0, jac=objective_2r_jac, xtol=xtol2)
             params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
         except:
             print('An error occured, the sample will be dropped!')
@@ -198,8 +207,8 @@ def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=False, p0=None,
         try:
             lower = [re_min, -coeff_re_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
             upper = [re_max, coeff_re_max, re_max, im_max, coeff_re_max, coeff_im_max]
-            params_tmp, _ = curve_fit(objective_1r1c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                          curve_fit(objective_1r1c, grid_x, data_y, maxfev=100000, p0=p0)
+            params_tmp, _ = curve_fit(objective_1r1c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0, jac=objective_1r1c_jac, xtol=xtol3) if with_bounds else \
+                          curve_fit(objective_1r1c, grid_x, data_y, maxfev=100000, p0=p0, jac=objective_1r1c_jac, xtol=xtol3)
             params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
         except:
             print('An error occured, the sample will be dropped!')
@@ -209,8 +218,8 @@ def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=False, p0=None,
         try:
             lower = [re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
             upper = [re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max]
-            params_tmp, _ = curve_fit(objective_2c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                          curve_fit(objective_2c, grid_x, data_y, maxfev=100000, p0=p0)
+            params_tmp, _ = curve_fit(objective_2c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0, jac=objective_2c_jac, xtol=xtol4) if with_bounds else \
+                          curve_fit(objective_2c, grid_x, data_y, maxfev=100000, p0=p0, jac=objective_2c_jac, xtol=xtol4)
             params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
         except:
             print('An error occured, the sample will be dropped!')
@@ -220,8 +229,8 @@ def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=False, p0=None,
         try:
             lower = [re_min, -coeff_re_max, re_min, -coeff_re_max, re_min, -coeff_re_max]
             upper = [re_max, coeff_re_max, re_max, coeff_re_max, re_max, coeff_re_max]
-            params_tmp, _ = curve_fit(objective_3r, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                          curve_fit(objective_3r, grid_x, data_y, maxfev=100000, p0=p0)
+            params_tmp, _ = curve_fit(objective_3r, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0, jac=objective_3r_jac, xtol=xtol5) if with_bounds else \
+                          curve_fit(objective_3r, grid_x, data_y, maxfev=100000, p0=p0, jac=objective_3r_jac, xtol=xtol5)
             params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
         except:
             print('An error occured, the sample will be dropped!')
@@ -231,8 +240,8 @@ def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=False, p0=None,
         try:
             lower = [re_min, -coeff_re_max, re_min, -coeff_re_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
             upper = [re_max, coeff_re_max, re_max, coeff_re_max, re_max, im_max, coeff_re_max, coeff_im_max]
-            params_tmp, _ = curve_fit(objective_2r1c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                          curve_fit(objective_2r1c, grid_x, data_y, maxfev=100000, p0=p0)
+            params_tmp, _ = curve_fit(objective_2r1c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0, jac=objective_2r1c_jac, xtol=xtol6) if with_bounds else \
+                          curve_fit(objective_2r1c, grid_x, data_y, maxfev=100000, p0=p0, jac=objective_2r1c_jac, xtol=xtol6)
             params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
         except:
             print('An error occured, the sample will be dropped!')
@@ -242,8 +251,8 @@ def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=False, p0=None,
         try:
             lower = [re_min, -coeff_re_max, re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
             upper = [re_max, coeff_re_max, re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max]
-            params_tmp, _ = curve_fit(objective_1r2c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                          curve_fit(objective_1r2c, grid_x, data_y, maxfev=100000, p0=p0)
+            params_tmp, _ = curve_fit(objective_1r2c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0, jac=objective_1r2c_jac, xtol=xtol7) if with_bounds else \
+                          curve_fit(objective_1r2c, grid_x, data_y, maxfev=100000, p0=p0, jac=objective_1r2c_jac, xtol=xtol7)
             params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1)   
         except:
             print('An error occured, the sample will be dropped!')
@@ -253,8 +262,8 @@ def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=False, p0=None,
         try:
             lower = [re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
             upper = [re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max]
-            params_tmp, _ = curve_fit(objective_3c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0) if with_bounds else \
-                          curve_fit(objective_3c, grid_x, data_y, maxfev=100000, p0=p0)
+            params_tmp, _ = curve_fit(objective_3c, grid_x, data_y, maxfev=100000, bounds=(lower, upper), p0=p0, jac=objective_3c_jac, xtol=xtol8) if with_bounds else \
+                          curve_fit(objective_3c, grid_x, data_y, maxfev=100000, p0=p0, jac=objective_3c_jac, xtol=xtol8)
             params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
         except:
             print('An error occured, the sample will be dropped!')

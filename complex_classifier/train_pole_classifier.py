@@ -18,7 +18,7 @@ from parameters import train_portion_classifier, val_portion_classifier, test_po
 from parameters import architecture_classifier, hidden_dim_1_classifier, in_features_classifier, out_features_classifier
 from parameters import weight_decay_classifier, batch_size_classifier, learning_rate_classifier, epochs_classifier
 from parameters import data_dir_classifier, log_dir_classifier, models_dir_classifier
-from parameters import experimental_num_use_data_classifier, n_examples_classifier
+from parameters import num_use_data_classifier, n_examples_classifier
 from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
 from parameters import fact_classifier, dst_min_classifier
 from lib.pole_classifier import Pole_Classifier, PoleDataModule_Classifier
@@ -51,7 +51,7 @@ if __name__ == '__main__':
                 )
                 
     datamodule = PoleDataModule_Classifier(data_dir=data_dir_classifier, batch_size=batch_size_classifier, 
-                                train_portion=train_portion_classifier, validation_portion=val_portion_classifier, test_portion=test_portion_classifier, num_use_data=experimental_num_use_data_classifier)
+                                train_portion=train_portion_classifier, validation_portion=val_portion_classifier, test_portion=test_portion_classifier, num_use_data=num_use_data_classifier)
     
     checkpoint_callback1 = pl.callbacks.ModelCheckpoint(
         dirpath = models_dir_classifier,
@@ -98,7 +98,7 @@ if __name__ == '__main__':
                 coeff_im_max = coeff_im_max, 
                 coeff_im_min = coeff_im_min,
                 n_examples_classifier = n_examples_classifier,
-                experimental_num_use_data_classifier = experimental_num_use_data_classifier,
+                num_use_data_classifier = num_use_data_classifier,
                 fact_classifier = fact_classifier,
                 dst_min_classifier = dst_min_classifier,
                 train_portion_classifier = train_portion_classifier,

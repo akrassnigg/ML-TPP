@@ -15,7 +15,6 @@ import sys
 
 from lib.standardization_functions import std_data
 from lib.scipy_fit_functions import get_all_scipy_preds
-from lib.pole_objective_functions import complex_conjugate_pole_pair_obj
 from lib.architectures import FC1
 from lib.pole_classifier import Pole_Classifier
 from lib.curve_calc_functions import pole_curve_calc2

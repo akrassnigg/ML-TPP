@@ -455,7 +455,7 @@ def create_training_data_classifier(length, grid_x, with_bounds, data_dir):
         labels_and_params[i] = np.hstack([labels_and_params[i], np.zeros([labels_and_params[i].shape[0], fillup])])
     labels_and_params = np.vstack(labels_and_params)
     print('Maximum number of samples to be created: ', len(labels_and_params))
-
+    
     # Get Scipy predictions for each sample
     print('Getting SciPy predictions...')
     params_1r, params_1c, params_2r, params_1r1c, params_2c, \
