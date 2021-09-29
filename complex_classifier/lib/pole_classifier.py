@@ -19,7 +19,7 @@ from pytorch_lightning.core import LightningModule
 from pytorch_lightning.metrics.functional import accuracy
 from torch.utils.data import WeightedRandomSampler
 
-from lib.architectures import FC1
+from lib.architectures import FC1, FC2
 from parameters import out_features_classifier
 
 
@@ -29,7 +29,7 @@ from parameters import out_features_classifier
 
 class PoleDataSet_Classifier(Dataset):
     def __init__(self, data_dir, num_use_data):
-        self.data_X = np.load(os.path.join(data_dir, "various_poles_data_classifier_x.npy"), allow_pickle=True).astype('float32')
+        self.data_X = np.load(os.path.join(data_dir, "various_poles_data_classifier_x.npy"), allow_pickle=True).astype('float32')[:,0:69]
         self.data_Y = np.load(os.path.join(data_dir, "various_poles_data_classifier_y.npy"), allow_pickle=True).astype('int64').reshape((-1,1)) 
         
         print("Checking shape of loaded data: X: ", np.shape(self.data_X))

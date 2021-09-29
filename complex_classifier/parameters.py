@@ -64,7 +64,7 @@ test_portion_classifier  = 0.1
 # Network and training hyperparameters
 ### ANN architecture
 architecture_classifier = 'FC1'
-in_features_classifier  = 133
+in_features_classifier  = 69
 out_features_classifier = 9
 hidden_dim_1_classifier = 32
 ### Regularization

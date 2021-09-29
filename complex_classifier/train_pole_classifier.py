@@ -21,6 +21,7 @@ from parameters import data_dir_classifier, log_dir_classifier, models_dir_class
 from parameters import num_use_data_classifier, n_examples_classifier
 from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
 from parameters import fact_classifier, dst_min_classifier
+from parameters import xtol
 from lib.pole_classifier import Pole_Classifier, PoleDataModule_Classifier
 from lib.plotting_routines import classifier_plot
 import wandb
@@ -35,8 +36,8 @@ if __name__ == '__main__':
     model_timestamp = int(time.time())
     
     logger = WandbLogger(entity="ml-tpp", project="pole_classifier",
-                         group="Experiment: drop small poles relative",
-                         notes="Classifier DataSet Experiment: Drop samples with poles that are factors smaller than other poles and compare test_acc for different values of fact_classifier",
+                         group="Experiment: Network Input",
+                         notes="Classifier DataSet Experiment: Try out different network input vectors to see which inputs are especially important and possibly find irrelevant inputs.",
                          tags = ["Classifier", "DataSet Experiment"])
     
     model = Pole_Classifier(
@@ -101,9 +102,12 @@ if __name__ == '__main__':
                 num_use_data_classifier = num_use_data_classifier,
                 fact_classifier = fact_classifier,
                 dst_min_classifier = dst_min_classifier,
+                xtol = xtol,
+                input = 'MSEs+params',
+                
                 train_portion_classifier = train_portion_classifier,
                 val_portion_classifier = val_portion_classifier,
-                test_portion_classifier = test_portion_classifier       
+                test_portion_classifier = test_portion_classifier    
 		)
 
     trainer.logger.log_hyperparams(hyperparameters)
