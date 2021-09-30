@@ -1,0 +1,19 @@
+program: train_pole_classifier.py
+method: bayes
+entity: "ml-tpp"
+project: "pole_classifier"
+name: "sweep_hidden_units"
+description: "architecture=FC3, sweep over the number of hidden unites for the three layers"
+metric:
+  name: test_acc
+  goal: maximize
+parameters:
+  hidden_dim_1_classifier:
+    min: 2
+    max: 128
+  hidden_dim_2_classifier:
+    min: 2
+    max: 128
+  hidden_dim_3_classifier:
+    min: 2
+    max: 128

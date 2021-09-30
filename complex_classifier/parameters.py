@@ -63,10 +63,15 @@ test_portion_classifier  = 0.1
 
 # Network and training hyperparameters
 ### ANN architecture
-architecture_classifier = 'FC1'
+architecture_classifier = 'FC3'
 in_features_classifier  = 69
 out_features_classifier = 9
 hidden_dim_1_classifier = 32
+hidden_dim_2_classifier = 32
+hidden_dim_3_classifier = 32
+hidden_dim_4_classifier = 0
+hidden_dim_5_classifier = 0
+hidden_dim_6_classifier = 0
 ### Regularization
 weight_decay_classifier = 0.0        
 ### Training hparams

@@ -13,9 +13,14 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger  
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import torch
+import wandb
+import argparse
 
 from parameters import train_portion_classifier, val_portion_classifier, test_portion_classifier
-from parameters import architecture_classifier, hidden_dim_1_classifier, in_features_classifier, out_features_classifier
+from parameters import architecture_classifier
+from parameters import hidden_dim_1_classifier, hidden_dim_2_classifier, hidden_dim_3_classifier
+from parameters import hidden_dim_4_classifier, hidden_dim_5_classifier, hidden_dim_6_classifier
+from parameters import in_features_classifier, out_features_classifier
 from parameters import weight_decay_classifier, batch_size_classifier, learning_rate_classifier, epochs_classifier
 from parameters import data_dir_classifier, log_dir_classifier, models_dir_classifier
 from parameters import num_use_data_classifier, n_examples_classifier
@@ -24,7 +29,6 @@ from parameters import fact_classifier, dst_min_classifier
 from parameters import xtol
 from lib.pole_classifier import Pole_Classifier, PoleDataModule_Classifier
 from lib.plotting_routines import classifier_plot
-import wandb
 
 ##############################################################################
 ##########################   Execution   #####################################
@@ -32,23 +36,70 @@ import wandb
 
 
 if __name__ == '__main__':
+    ##########   Parse hyperparameters, if wanted   ##########################
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument('--hidden_dim_1_classifier', type=int, default=hidden_dim_1_classifier)
+    parser.add_argument('--hidden_dim_2_classifier', type=int, default=hidden_dim_2_classifier)
+    parser.add_argument('--hidden_dim_3_classifier', type=int, default=hidden_dim_3_classifier)
+    
+    args = parser.parse_args()
+    hidden_dim_1_classifier = args.hidden_dim_1_classifier
+    hidden_dim_2_classifier = args.hidden_dim_2_classifier
+    hidden_dim_3_classifier = args.hidden_dim_3_classifier
+    ##########################################################################
     
     model_timestamp = int(time.time())
     
-    logger = WandbLogger(entity="ml-tpp", project="pole_classifier",
-                         group="Experiment: Network Input",
-                         notes="Classifier DataSet Experiment: Try out different network input vectors to see which inputs are especially important and possibly find irrelevant inputs.",
-                         tags = ["Classifier", "DataSet Experiment"])
-    
-    model = Pole_Classifier(
-                weight_decay  = weight_decay_classifier,
-                learning_rate = learning_rate_classifier,
-                
+    net_hyperparameters = dict(
                 architecture = architecture_classifier,
                 in_features  = in_features_classifier,
-                out_features = out_features_classifier,
+                out_features = out_features_classifier, 
+                hidden_dim_1 = hidden_dim_1_classifier,
+                hidden_dim_2 = hidden_dim_2_classifier,
+                hidden_dim_3 = hidden_dim_3_classifier,
+                hidden_dim_4 = hidden_dim_4_classifier,
+                hidden_dim_5 = hidden_dim_5_classifier,
+                hidden_dim_6 = hidden_dim_6_classifier,
                 
-                hidden_dim_1  = hidden_dim_1_classifier
+                weight_decay = weight_decay_classifier,    
+                learning_rate = learning_rate_classifier,
+		)
+    
+    other_hyperparameters = dict(
+                re_max = re_max, 
+                re_min = re_min, 
+                im_max = im_max, 
+                im_min = im_min, 
+                coeff_re_max = coeff_re_max, 
+                coeff_re_min = coeff_re_min, 
+                coeff_im_max = coeff_im_max, 
+                coeff_im_min = coeff_im_min,
+
+                fact_classifier = fact_classifier,
+                dst_min_classifier = dst_min_classifier,
+                xtol = xtol,
+                
+                n_examples_classifier = n_examples_classifier,
+                num_use_data_classifier = num_use_data_classifier,
+                train_portion_classifier = train_portion_classifier,
+                val_portion_classifier = val_portion_classifier,
+                test_portion_classifier = test_portion_classifier, 
+                batch_size = batch_size_classifier
+		)
+    
+    hyperparameters = {**net_hyperparameters, **other_hyperparameters}
+    
+    wandb.init(config=hyperparameters,
+               entity="ml-tpp", project="pole_classifier",
+               group="Experiment: Architecture 1",
+               notes="Classifier Architecture Experiment: Try other network architectures (including the size) to reduce the bias problem.",
+               tags = ["Classifier", "Architecture Experiment", "Sweep"])
+
+    logger = WandbLogger()  
+
+    model = Pole_Classifier(
+                **net_hyperparameters
                 )
                 
     datamodule = PoleDataModule_Classifier(data_dir=data_dir_classifier, batch_size=batch_size_classifier, 
@@ -80,38 +131,7 @@ if __name__ == '__main__':
         gpus=1
     )
 
-    hyperparameters = dict(
-                architecture = architecture_classifier,
-                in_features  = in_features_classifier,
-                out_features = out_features_classifier, 
-                hidden_dim_1 = hidden_dim_1_classifier,
-                
-                weight_decay = weight_decay_classifier,    
-                learning_rate = learning_rate_classifier,
-                batch_size = batch_size_classifier,
-                
-                re_max = re_max, 
-                re_min = re_min, 
-                im_max = im_max, 
-                im_min = im_min, 
-                coeff_re_max = coeff_re_max, 
-                coeff_re_min = coeff_re_min, 
-                coeff_im_max = coeff_im_max, 
-                coeff_im_min = coeff_im_min,
-                n_examples_classifier = n_examples_classifier,
-                num_use_data_classifier = num_use_data_classifier,
-                fact_classifier = fact_classifier,
-                dst_min_classifier = dst_min_classifier,
-                xtol = xtol,
-                input = 'MSEs+params',
-                
-                train_portion_classifier = train_portion_classifier,
-                val_portion_classifier = val_portion_classifier,
-                test_portion_classifier = test_portion_classifier    
-		)
-
     trainer.logger.log_hyperparams(hyperparameters)
-    
     trainer.fit(model, datamodule=datamodule)
     trainer.test(model, datamodule=datamodule, ckpt_path="best")
     

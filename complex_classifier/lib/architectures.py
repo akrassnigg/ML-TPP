@@ -88,6 +88,172 @@ class FC2(torch.nn.Module):
         return x
     
 
+class FC3(torch.nn.Module):
+    '''
+    ANN Architecture with 3 hidden, fully connected layers
+    '''
+    
+    def __init__(self,
+                 ### Dataset-specific parameters
+                 in_features: int,
+                 out_features: int,
+ 
+                 ### Fully connected layers
+                 hidden_dim_1: int, 
+                 hidden_dim_2: int, 
+                 hidden_dim_3: int,  
+                 
+                 *args,
+                 **kwargs
+                 ):
+        
+        # init superclasss
+        super().__init__()
+
+        self.fc1 = nn.Linear(in_features=in_features,
+                              out_features=hidden_dim_1)
+        
+        self.fc2 = nn.Linear(in_features=hidden_dim_1,
+                              out_features=hidden_dim_2)
+        
+        self.fc3 = nn.Linear(in_features=hidden_dim_2,
+                              out_features=hidden_dim_3)
+    
+        self.fc_out = nn.Linear(in_features=hidden_dim_3,
+                              out_features=out_features)
+        
+        
+    def forward(self, x):        
+        x = self.fc1(x)
+        x = torch.relu(x)
+        
+        x = self.fc2(x)
+        x = torch.relu(x)
+        
+        x = self.fc3(x)
+        x = torch.relu(x)
+
+        x = self.fc_out(x)
+        return x
+    
+
+class FC4(torch.nn.Module):
+    '''
+    ANN Architecture with 4 hidden, fully connected layers
+    '''
+    
+    def __init__(self,
+                 ### Dataset-specific parameters
+                 in_features: int,
+                 out_features: int,
+ 
+                 ### Fully connected layers
+                 hidden_dim_1: int, 
+                 hidden_dim_2: int, 
+                 hidden_dim_3: int, 
+                 hidden_dim_4: int,  
+                 
+                 *args,
+                 **kwargs
+                 ):
+        
+        # init superclasss
+        super().__init__()
+
+        self.fc1 = nn.Linear(in_features=in_features,
+                              out_features=hidden_dim_1)
+        
+        self.fc2 = nn.Linear(in_features=hidden_dim_1,
+                              out_features=hidden_dim_2)
+        
+        self.fc3 = nn.Linear(in_features=hidden_dim_2,
+                              out_features=hidden_dim_3)
+        
+        self.fc4 = nn.Linear(in_features=hidden_dim_3,
+                             out_features=hidden_dim_4)
+    
+        self.fc_out = nn.Linear(in_features=hidden_dim_4,
+                              out_features=out_features)
+        
+        
+    def forward(self, x):        
+        x = self.fc1(x)
+        x = torch.relu(x)
+        
+        x = self.fc2(x)
+        x = torch.relu(x)
+        
+        x = self.fc3(x)
+        x = torch.relu(x)
+        
+        x = self.fc4(x)
+        x = torch.relu(x)
+
+        x = self.fc_out(x)
+        return x    
+
+class FC5(torch.nn.Module):
+    '''
+    ANN Architecture with 5 hidden, fully connected layers
+    '''
+    
+    def __init__(self,
+                 ### Dataset-specific parameters
+                 in_features: int,
+                 out_features: int,
+ 
+                 ### Fully connected layers
+                 hidden_dim_1: int, 
+                 hidden_dim_2: int, 
+                 hidden_dim_3: int, 
+                 hidden_dim_4: int, 
+                 hidden_dim_5: int,  
+                 
+                 *args,
+                 **kwargs
+                 ):
+        
+        # init superclasss
+        super().__init__()
+
+        self.fc1 = nn.Linear(in_features=in_features,
+                              out_features=hidden_dim_1)
+        
+        self.fc2 = nn.Linear(in_features=hidden_dim_1,
+                              out_features=hidden_dim_2)
+        
+        self.fc3 = nn.Linear(in_features=hidden_dim_2,
+                              out_features=hidden_dim_3)
+        
+        self.fc4 = nn.Linear(in_features=hidden_dim_3,
+                             out_features=hidden_dim_4)
+        
+        self.fc5 = nn.Linear(in_features=hidden_dim_4,
+                             out_features=hidden_dim_5)
+    
+        self.fc_out = nn.Linear(in_features=hidden_dim_5,
+                              out_features=out_features)
+        
+        
+    def forward(self, x):        
+        x = self.fc1(x)
+        x = torch.relu(x)
+        
+        x = self.fc2(x)
+        x = torch.relu(x)
+        
+        x = self.fc3(x)
+        x = torch.relu(x)
+        
+        x = self.fc4(x)
+        x = torch.relu(x)
+        
+        x = self.fc5(x)
+        x = torch.relu(x)
+
+        x = self.fc_out(x)
+        return x    
+
 class FC6(torch.nn.Module):
     '''
     ANN Architecture with 6 hidden, fully connected layers
@@ -155,8 +321,7 @@ class FC6(torch.nn.Module):
         x = torch.relu(x)
 
         x = self.fc_out(x)
-        return x
-    
+        return x 
 
     
     
