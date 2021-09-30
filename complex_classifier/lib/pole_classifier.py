@@ -41,22 +41,22 @@ class PoleDataSet_Classifier(Dataset):
             new_data_X = []
             new_data_Y = []
             for label in range(out_features_classifier):
-                seed_afterward = np.random.randint(low=0, high=1e3)
-                np.random.seed(1234)
+                #seed_afterward = np.random.randint(low=0, high=1e3)
+                #np.random.seed(1234)
                 data_x_i = ( self.data_X[self.data_Y.reshape(-1)==label] ).copy()
                 np.random.shuffle(data_x_i)
                 new_data_X.append(data_x_i[0:num_use_data[label]])
                 new_data_Y.append(np.ones((num_use_data[label],1))*label)
-                np.random.seed(seed_afterward)
+                #np.random.seed(seed_afterward)
             self.data_X = np.vstack(new_data_X)
             self.data_Y = np.vstack(new_data_Y).astype('int64')
         else:
-            seed_afterward = np.random.randint(low=0, high=1e3)
-            np.random.seed(1234)
+            #seed_afterward = np.random.randint(low=0, high=1e3)
+            #np.random.seed(1234)
             indices = np.arange(len(self.data_Y))
             np.random.shuffle(indices)
             indices = indices[0:num_use_data]
-            np.random.seed(seed_afterward)
+            #np.random.seed(seed_afterward)
             self.data_X = self.data_X[indices]
             self.data_Y = self.data_Y[indices]
             print('Successfully selected a Subset of the Data...')
@@ -95,7 +95,7 @@ class PoleDataModule_Classifier(pl.LightningDataModule):
         print("Data splits: ", self.training_number, self.validation_number, self.test_number, num_data)
         
         train_part, val_part, test_part = random_split(all_data, [self.training_number, self.validation_number, self.test_number]
-                                                       , generator=torch.Generator().manual_seed(1234))
+                                                       )#, generator=torch.Generator().manual_seed(1234))
 
         self.train_dataset = train_part
         self.val_dataset = val_part
@@ -170,15 +170,15 @@ class PoleDataModule_Classifier(pl.LightningDataModule):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, sampler=sampler)
 
     def val_dataloader(self):
-        sampler = WeightedRandomSampler(weights=self.val_weights, num_samples=len(self.val_weights), generator=torch.Generator().manual_seed(1234))
+        sampler = WeightedRandomSampler(weights=self.val_weights, num_samples=len(self.val_weights))#, generator=torch.Generator().manual_seed(1234))
         return DataLoader(self.val_dataset, batch_size=self.batch_size, sampler=sampler)
 
     def test_dataloader(self):
-        sampler = WeightedRandomSampler(weights=self.test_weights, num_samples=len(self.test_weights), generator=torch.Generator().manual_seed(1234))
+        sampler = WeightedRandomSampler(weights=self.test_weights, num_samples=len(self.test_weights))#, generator=torch.Generator().manual_seed(1234))
         return DataLoader(self.test_dataset, batch_size=self.batch_size, sampler=sampler)
     
     def predict_dataloader(self):
-        sampler = WeightedRandomSampler(weights=self.test_weights, num_samples=len(self.test_weights), generator=torch.Generator().manual_seed(1234))
+        sampler = WeightedRandomSampler(weights=self.test_weights, num_samples=len(self.test_weights))#, generator=torch.Generator().manual_seed(1234))
         return DataLoader(self.test_dataset, batch_size=self.batch_size, sampler=sampler)
 
     

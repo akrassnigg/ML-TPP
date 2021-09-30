@@ -5,7 +5,7 @@ project: "pole_classifier"
 name: "sweep_hidden_units"
 description: "architecture=FC3, sweep over the number of hidden unites for the three layers"
 metric:
-  name: test_acc
+  name: test_acc_averaged
   goal: maximize
 parameters:
   hidden_dim_1_classifier:

@@ -90,7 +90,7 @@ class PoleDataModule_Regressor(pl.LightningDataModule):
         
         print("Data splits: ", self.training_number, self.validation_number, self.test_number, num_data)
         train_part, val_part, test_part = random_split(all_data, [self.training_number, self.validation_number, self.test_number]
-                                                       , generator=torch.Generator().manual_seed(1234))
+                                                       )#, generator=torch.Generator().manual_seed(1234))
 
         self.train_dataset = train_part
         self.val_dataset = val_part

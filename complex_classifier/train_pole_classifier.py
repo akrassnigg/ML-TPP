@@ -27,6 +27,7 @@ from parameters import num_use_data_classifier, n_examples_classifier
 from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
 from parameters import fact_classifier, dst_min_classifier
 from parameters import xtol
+from parameters import num_runs_classifier
 from lib.pole_classifier import Pole_Classifier, PoleDataModule_Classifier
 from lib.plotting_routines import classifier_plot
 
@@ -48,8 +49,6 @@ if __name__ == '__main__':
     hidden_dim_2_classifier = args.hidden_dim_2_classifier
     hidden_dim_3_classifier = args.hidden_dim_3_classifier
     ##########################################################################
-    
-    model_timestamp = int(time.time())
     
     net_hyperparameters = dict(
                 architecture = architecture_classifier,
@@ -98,42 +97,48 @@ if __name__ == '__main__':
 
     logger = WandbLogger()  
 
-    model = Pole_Classifier(
-                **net_hyperparameters
-                )
-                
-    datamodule = PoleDataModule_Classifier(data_dir=data_dir_classifier, batch_size=batch_size_classifier, 
-                                train_portion=train_portion_classifier, validation_portion=val_portion_classifier, test_portion=test_portion_classifier, num_use_data=num_use_data_classifier)
+    num_runs = num_runs_classifier
+    test_acc_averaged = 0
+    for i in range(num_runs): # average test_acc over multiple runs
+        model = Pole_Classifier(
+                    **net_hyperparameters
+                    )
+                    
+        datamodule = PoleDataModule_Classifier(data_dir=data_dir_classifier, batch_size=batch_size_classifier, 
+                                    train_portion=train_portion_classifier, validation_portion=val_portion_classifier, test_portion=test_portion_classifier, num_use_data=num_use_data_classifier)
+        
+        checkpoint_callback1 = pl.callbacks.ModelCheckpoint(
+            dirpath = models_dir_classifier,
+            filename = 'name_' + str(wandb.run.name) + '_id_' + str(wandb.run.id) + '_' + str(i),
+            monitor="val_acc",
+            save_top_k=1, 
+            mode='max',
+            save_last= False
+        )
+        
+        checkpoint_callback2 = pl.callbacks.ModelCheckpoint(
+            monitor="val_acc",
+            save_top_k=1, 
+            mode='max',
+            save_last= True
+        )
+        
+        early_stop_callback = EarlyStopping(monitor="val_acc", min_delta=0.00, patience=10, mode="max")
+        
+        trainer = pl.Trainer(
+            logger=logger,
+            #val_check_interval=1,
+            callbacks=[checkpoint_callback1, checkpoint_callback2, early_stop_callback],
+            max_epochs=epochs_classifier,
+            gpus=1
+        )
     
-    checkpoint_callback1 = pl.callbacks.ModelCheckpoint(
-        dirpath = models_dir_classifier,
-        filename = 'version_' + str(model_timestamp),
-        monitor="val_acc",
-        save_top_k=1, 
-        mode='max',
-        save_last= False
-    )
-    
-    checkpoint_callback2 = pl.callbacks.ModelCheckpoint(
-        monitor="val_acc",
-        save_top_k=1, 
-        mode='max',
-        save_last= True
-    )
-    
-    early_stop_callback = EarlyStopping(monitor="val_acc", min_delta=0.00, patience=10, mode="max")
-    
-    trainer = pl.Trainer(
-        logger=logger,
-        #val_check_interval=1,
-        callbacks=[checkpoint_callback1, checkpoint_callback2, early_stop_callback],
-        max_epochs=epochs_classifier,
-        gpus=1
-    )
-
-    trainer.logger.log_hyperparams(hyperparameters)
-    trainer.fit(model, datamodule=datamodule)
-    trainer.test(model, datamodule=datamodule, ckpt_path="best")
+        trainer.logger.log_hyperparams(hyperparameters)
+        trainer.fit(model, datamodule=datamodule)
+        trainer.test(model, datamodule=datamodule, ckpt_path="best")
+        test_acc_averaged += trainer.logged_metrics["test_acc"].item()
+    test_acc_averaged /= num_runs
+    wandb.log({'test_acc_averaged': test_acc_averaged})
     
     # Create classifier plot with test data
     test_dataloader = datamodule.test_dataloader()
