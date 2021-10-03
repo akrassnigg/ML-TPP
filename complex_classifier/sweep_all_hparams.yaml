@@ -11,7 +11,7 @@ parameters:
   hidden_dim_classifier:
     distribution: int_uniform
     min: 1
-    max: 512   # maybe too large; if larger nets don't help then prefer small nets
+    max: 512   # may be too large; if larger nets don't help then prefer small nets
   architecture_classifier:
     distribution: categorical  # if deep nets don't help then prefer shallow nets
     values: ["FC1", "FC2", "FC3", "FC4", "FC5", "FC6"]
@@ -21,15 +21,15 @@ parameters:
     max: 512  # maybe too large? usually 32 is good
   learning_rate_classifier:
     distribution: log_uniform
-    min: 1e-6
-    max: 1e-1
+    min: -13.815510557964275 #2.302585092994046 * (-6.0)
+    max: -2.302585092994046  #2.302585092994046 * (-1.0)
   optimizer_classifier:
     distribution: categorical
     values: ["Adam", "AdamW", "Adagrad", "Adadelta", "RMSprop", "SGD"]
   weight_decay_classifier:
     distribution: log_uniform
-    min: 1e-9
-    max: 1e-1
+    min: -20.723265836946414 #2.302585092994046 * (-9.0)
+    max: -2.302585092994046  #2.302585092994046 * (-1.0)
   drop_prob_classifier:
     distribution: uniform
     min: 0.0
