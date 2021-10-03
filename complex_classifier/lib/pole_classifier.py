@@ -255,15 +255,15 @@ class Pole_Classifier(LightningModule):
     def configure_optimizers(self):
         if self.hparams.optimizer == 'Adam':
             optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
-        if self.hparams.optimizer == 'AdamW':
+        elif self.hparams.optimizer == 'AdamW':
             optimizer = optim.AdamW(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
-        if self.hparams.optimizer == 'Adagrad':
+        elif self.hparams.optimizer == 'Adagrad':
             optimizer = optim.Adagrad(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
-        if self.hparams.optimizer == 'Adadelta':
+        elif self.hparams.optimizer == 'Adadelta':
             optimizer = optim.Adadelta(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
-        if self.hparams.optimizer == 'RMSprop':
+        elif self.hparams.optimizer == 'RMSprop':
             optimizer = optim.RMSprop(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
-        if self.hparams.optimizer == 'SGD':
+        elif self.hparams.optimizer == 'SGD':
             optimizer = optim.SGD(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
         return {"optimizer": optimizer}
 
