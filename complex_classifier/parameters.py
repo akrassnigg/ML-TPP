@@ -57,9 +57,9 @@ dst_min_classifier = 0.0     # set to 0 to not drop any samples
 xtol = 1e-8  # can be a single int or a list of ints, one for each class 
 
 # Data split
-train_portion_classifier = 0.8
-val_portion_classifier   = 0.1
-test_portion_classifier  = 0.1
+train_portion_classifier = 0.98
+val_portion_classifier   = 0.01
+test_portion_classifier  = 0.01
 
 # Network and training hyperparameters
 ### ANN architecture
@@ -73,12 +73,19 @@ hidden_dim_4_classifier = 0
 hidden_dim_5_classifier = 0
 hidden_dim_6_classifier = 0
 ### Regularization
-weight_decay_classifier = 0.0        
+weight_decay_classifier = 0.0    
+drop_prob_1_classifier  = 0.0   
+drop_prob_2_classifier  = 0.0   
+drop_prob_3_classifier  = 0.0   
+drop_prob_4_classifier  = 0.0   
+drop_prob_5_classifier  = 0.0   
+drop_prob_6_classifier  = 0.0    
 ### Training hparams
+optimizer_classifier     = 'Adam'
 batch_size_classifier    = 32
 learning_rate_classifier = 1e-3
 epochs_classifier        = int(1e15)
-num_runs_classifier      = 1
+num_runs_classifier      = 5
 
 ##############################################################################
 ##############   Regressors   ################################################

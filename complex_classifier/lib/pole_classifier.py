@@ -202,6 +202,9 @@ class Pole_Classifier(LightningModule):
                  # ANN Architecture
                  architecture: str = 'FC1', 
                  
+                 # Optimizer
+                 optimizer: str = 'Adam',
+                 
                  #Additional arguments needed for initialization of the ANN Architecture
                  **kwargs
                  ):
@@ -250,7 +253,18 @@ class Pole_Classifier(LightningModule):
         return test_loss
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
+        if self.hparams.optimizer == 'Adam':
+            optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
+        if self.hparams.optimizer == 'AdamW':
+            optimizer = optim.AdamW(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
+        if self.hparams.optimizer == 'Adagrad':
+            optimizer = optim.Adagrad(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
+        if self.hparams.optimizer == 'Adadelta':
+            optimizer = optim.Adadelta(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
+        if self.hparams.optimizer == 'RMSprop':
+            optimizer = optim.RMSprop(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
+        if self.hparams.optimizer == 'SGD':
+            optimizer = optim.SGD(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
         return {"optimizer": optimizer}
 
     

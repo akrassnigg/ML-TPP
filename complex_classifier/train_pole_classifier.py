@@ -28,6 +28,9 @@ from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_mi
 from parameters import fact_classifier, dst_min_classifier
 from parameters import xtol
 from parameters import num_runs_classifier
+from parameters import optimizer_classifier
+from parameters import drop_prob_1_classifier, drop_prob_2_classifier, drop_prob_3_classifier
+from parameters import drop_prob_4_classifier, drop_prob_5_classifier, drop_prob_6_classifier
 from lib.pole_classifier import Pole_Classifier, PoleDataModule_Classifier
 from lib.plotting_routines import classifier_plot
 
@@ -40,14 +43,32 @@ if __name__ == '__main__':
     ##########   Parse hyperparameters, if wanted   ##########################
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('--hidden_dim_1_classifier', type=int, default=hidden_dim_1_classifier)
-    parser.add_argument('--hidden_dim_2_classifier', type=int, default=hidden_dim_2_classifier)
-    parser.add_argument('--hidden_dim_3_classifier', type=int, default=hidden_dim_3_classifier)
-    
+    parser.add_argument('--hidden_dim_classifier', type=int, default=hidden_dim_1_classifier)
+    parser.add_argument('--architecture_classifier', type=str, default=architecture_classifier)
+    parser.add_argument('--batch_size_classifier', type=int, default=batch_size_classifier)
+    parser.add_argument('--learning_rate_classifier', type=float, default=learning_rate_classifier)
+    parser.add_argument('--optimizer_classifier', type=str, default=optimizer_classifier)
+    parser.add_argument('--weight_decay_classifier', type=float, default=weight_decay_classifier)
+    parser.add_argument('--drop_prob_classifier', type=float, default=drop_prob_1_classifier)
+     
     args = parser.parse_args()
-    hidden_dim_1_classifier = args.hidden_dim_1_classifier
-    hidden_dim_2_classifier = args.hidden_dim_2_classifier
-    hidden_dim_3_classifier = args.hidden_dim_3_classifier
+    hidden_dim_1_classifier  = args.hidden_dim_classifier
+    hidden_dim_2_classifier  = args.hidden_dim_classifier
+    hidden_dim_3_classifier  = args.hidden_dim_classifier
+    hidden_dim_4_classifier  = args.hidden_dim_classifier
+    hidden_dim_5_classifier  = args.hidden_dim_classifier
+    hidden_dim_6_classifier  = args.hidden_dim_classifier
+    architecture_classifier  = args.architecture_classifier
+    batch_size_classifier    = args.batch_size_classifier
+    learning_rate_classifier = args.learning_rate_classifier
+    optimizer_classifier     = args.optimizer_classifier
+    weight_decay_classifier  = args.weight_decay_classifier
+    drop_prob_1_classifier   = args.drop_prob_classifier
+    drop_prob_2_classifier   = args.drop_prob_classifier
+    drop_prob_3_classifier   = args.drop_prob_classifier
+    drop_prob_4_classifier   = args.drop_prob_classifier
+    drop_prob_5_classifier   = args.drop_prob_classifier
+    drop_prob_6_classifier   = args.drop_prob_classifier
     ##########################################################################
     
     net_hyperparameters = dict(
@@ -61,8 +82,16 @@ if __name__ == '__main__':
                 hidden_dim_5 = hidden_dim_5_classifier,
                 hidden_dim_6 = hidden_dim_6_classifier,
                 
-                weight_decay = weight_decay_classifier,    
+                weight_decay  = weight_decay_classifier,  
+                drop_prob_1   = drop_prob_1_classifier,
+                drop_prob_2   = drop_prob_2_classifier,
+                drop_prob_3   = drop_prob_3_classifier,
+                drop_prob_4   = drop_prob_4_classifier,
+                drop_prob_5   = drop_prob_5_classifier,
+                drop_prob_6   = drop_prob_6_classifier,
+                
                 learning_rate = learning_rate_classifier,
+                optimizer     = optimizer_classifier
 		)
     
     other_hyperparameters = dict(
@@ -91,9 +120,9 @@ if __name__ == '__main__':
     
     wandb.init(config=hyperparameters,
                entity="ml-tpp", project="pole_classifier",
-               group="Experiment: Architecture 1",
-               notes="Classifier Architecture Experiment: Try other network architectures (including the size) to reduce the bias problem.",
-               tags = ["Classifier", "Architecture Experiment", "Sweep"])
+               #group="Experiment: Architecture 1",
+               notes="Classifier Hyperparameter Optimization",
+               tags = ["Classifier", "Sweep"])
 
     logger = WandbLogger()  
 
@@ -123,11 +152,11 @@ if __name__ == '__main__':
             save_last= True
         )
         
-        early_stop_callback = EarlyStopping(monitor="val_acc", min_delta=0.00, patience=10, mode="max")
+        early_stop_callback = EarlyStopping(monitor="val_acc", min_delta=0.00, patience=20, mode="max")
         
         trainer = pl.Trainer(
             logger=logger,
-            #val_check_interval=1,
+            val_check_interval=0.1,
             callbacks=[checkpoint_callback1, checkpoint_callback2, early_stop_callback],
             max_epochs=epochs_classifier,
             gpus=1
