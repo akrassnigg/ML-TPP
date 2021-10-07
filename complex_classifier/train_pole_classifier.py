@@ -41,6 +41,7 @@ from lib.plotting_routines import classifier_plot
 
 if __name__ == '__main__':
     ##########   Parse hyperparameters, if wanted   ##########################
+    '''
     parser = argparse.ArgumentParser()
     
     parser.add_argument('--hidden_dim_classifier', type=int, default=hidden_dim_1_classifier)
@@ -69,6 +70,7 @@ if __name__ == '__main__':
     drop_prob_4_classifier   = args.drop_prob_classifier
     drop_prob_5_classifier   = args.drop_prob_classifier
     drop_prob_6_classifier   = args.drop_prob_classifier
+    '''
     ##########################################################################
     
     net_hyperparameters = dict(
@@ -120,9 +122,9 @@ if __name__ == '__main__':
     
     wandb.init(config=hyperparameters,
                entity="ml-tpp", project="pole_classifier",
-               #group="Experiment: Architecture 1",
-               notes="Classifier Hyperparameter Optimization",
-               tags = ["Classifier", "Sweep"])
+               group="Experiment: shorter log grid ",
+               notes="Classifier DataSet Experiment: Cut off our default grid at some cutoff value, dropping all gridpoints above. Compare accuracies to default grid.",
+               tags = ["Classifier", "DataSet Experiment"])
 
     logger = WandbLogger()  
 
@@ -157,7 +159,7 @@ if __name__ == '__main__':
         trainer = pl.Trainer(
             logger=logger,
             val_check_interval=0.1,
-            callbacks=[checkpoint_callback1, checkpoint_callback2, early_stop_callback],
+            callbacks=[checkpoint_callback1, early_stop_callback], #, checkpoint_callback2
             max_epochs=epochs_classifier,
             gpus=1
         )
@@ -167,7 +169,8 @@ if __name__ == '__main__':
         trainer.test(model, datamodule=datamodule, ckpt_path="best")
         test_acc_averaged += trainer.logged_metrics["test_acc"].item()
     test_acc_averaged /= num_runs
-    wandb.log({'test_acc_averaged': test_acc_averaged})
+    if num_runs > 1:
+        wandb.log({'test_acc_averaged': test_acc_averaged})
     
     # Create classifier plot with test data
     test_dataloader = datamodule.test_dataloader()

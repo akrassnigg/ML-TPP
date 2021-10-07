@@ -85,7 +85,7 @@ optimizer_classifier     = 'Adam'
 batch_size_classifier    = 32
 learning_rate_classifier = 1e-3
 epochs_classifier        = int(1e15)
-num_runs_classifier      = 5
+num_runs_classifier      = 1
 
 ##############################################################################
 ##############   Regressors   ################################################
