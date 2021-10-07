@@ -20,7 +20,7 @@ data_dir = './data/'
 
 # Sampling grid
 standard_re = pd.read_csv(os.path.join(data_dir, "integration_gridpoints.csv")).to_numpy().reshape(-1)
-standard_im = np.linspace(0., 0., num=64)
+standard_im = np.linspace(0., 0., num=len(standard_re))
 
 # Range of real pole positions:
 re_max = 0.5
