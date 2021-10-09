@@ -46,7 +46,7 @@ log_dir_classifier    = dir_classifier + 'logs/'
 models_dir_classifier = dir_classifier + 'models/'
 
 # Number of data points
-n_examples_classifier = 1000000  # can be a single int or a list of ints, one for each class (which can also be 0 to drop the class).
+n_examples_classifier = 100000  # can be a single int or a list of ints, one for each class (which can also be 0 to drop the class).
 num_use_data_classifier = 0# can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
 
 # Properties of drop_small_poles and drop_near_poles
@@ -57,9 +57,9 @@ dst_min_classifier = 0.0     # set to 0 to not drop any samples
 xtol = 1e-8  # can be a single int or a list of ints, one for each class 
 
 # Data split
-train_portion_classifier = 0.98
-val_portion_classifier   = 0.01
-test_portion_classifier  = 0.01
+train_portion_classifier = 0.8
+val_portion_classifier   = 0.1
+test_portion_classifier  = 0.1
 
 # Network and training hyperparameters
 ### ANN architecture

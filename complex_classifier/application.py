@@ -28,7 +28,7 @@ if __name__ == '__main__':
     # Do Scipy fit
     print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
     print('SciPy fits:')
-    params = get_all_scipy_preds(grid_x=grid_x, data_y=data_y, with_bounds=False)
+    params = get_all_scipy_preds(grid_x=grid_x, data_y=data_y, with_bounds=True)
     [print(paramsi) for paramsi in params]
 
     # Give out_re_pred to the classifier to see, if it correctly identifies it
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     # Get NNSC preds
     print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
     print('Regressor + SciPy fits:')
-    params_nnsc = get_all_nnsc_preds(model_path=dir_regressors, grid_x=grid_x, data_y=data_y, with_bounds=False)
+    params_nnsc = get_all_nnsc_preds(model_path=dir_regressors, grid_x=grid_x, data_y=data_y, with_bounds=True)
     [print(params_nnsci) for params_nnsci in params_nnsc]
 
 ###############################################################################

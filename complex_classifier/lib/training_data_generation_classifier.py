@@ -404,6 +404,66 @@ def drop_classifier_samples_afterwards(with_mean, data_dir, grid_x=standard_re, 
     
     return None
 
+def get_data_x(out_re, grid_x, with_bounds):
+    '''
+    Generates the unstandardized network input from the pole curves (out_re)
+    
+    out_re: numpy.ndarray of shape (n,) or (m,n), where m is the number of samples
+        Function values at the gridpoints
+        
+    grid_x: numpy.ndarray of shape (n,) or (1,n)
+        Gridpoints, where the function/pole configuration shall be evaluated
+        
+    with_bounds: bool, default=False
+        Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
+        
+    returns: numpy.ndarray of shape (m,9+60+len(grid_x))
+        data_x (network input), not yet normalized
+    '''
+    out_re = np.atleast_2d(out_re)
+    
+    # Get Scipy predictions for each sample
+    print('Getting SciPy predictions...')
+    params_1r, params_1c, params_2r, params_1r1c, params_2c, \
+    params_3r, params_2r1c, params_1r2c, params_3c = get_all_scipy_preds_dataprep(grid_x, out_re, with_bounds=with_bounds)
+
+    # Calculate out_re for the different predicted pole configurations
+    out_re_1r   = pole_curve_calc2(pole_class=0, pole_params=params_1r,   grid_x=grid_x)
+    out_re_1c   = pole_curve_calc2(pole_class=1, pole_params=params_1c,   grid_x=grid_x)
+    out_re_2r   = pole_curve_calc2(pole_class=2, pole_params=params_2r,   grid_x=grid_x)
+    out_re_1r1c = pole_curve_calc2(pole_class=3, pole_params=params_1r1c, grid_x=grid_x)
+    out_re_2c   = pole_curve_calc2(pole_class=4, pole_params=params_2c,   grid_x=grid_x)
+    out_re_3r   = pole_curve_calc2(pole_class=5, pole_params=params_3r,   grid_x=grid_x)
+    out_re_2r1c = pole_curve_calc2(pole_class=6, pole_params=params_2r1c, grid_x=grid_x)
+    out_re_1r2c = pole_curve_calc2(pole_class=7, pole_params=params_1r2c, grid_x=grid_x)
+    out_re_3c   = pole_curve_calc2(pole_class=8, pole_params=params_3c,   grid_x=grid_x)
+    
+    # Calculate the different MSEs
+    mse_1r   = mse(out_re, out_re_1r,   ax=1).reshape(-1,1)
+    mse_1c   = mse(out_re, out_re_1c,   ax=1).reshape(-1,1)
+    mse_2r   = mse(out_re, out_re_2r,   ax=1).reshape(-1,1)
+    mse_1r1c = mse(out_re, out_re_1r1c, ax=1).reshape(-1,1)
+    mse_2c   = mse(out_re, out_re_2c,   ax=1).reshape(-1,1)
+    mse_3r   = mse(out_re, out_re_3r,   ax=1).reshape(-1,1)
+    mse_2r1c = mse(out_re, out_re_2r1c, ax=1).reshape(-1,1)
+    mse_1r2c = mse(out_re, out_re_1r2c, ax=1).reshape(-1,1)
+    mse_3c   = mse(out_re, out_re_3c,   ax=1).reshape(-1,1)
+    
+    # Apply log10 to the MSEs to bring them to a similiar scale
+    mse_1r   = np.log10(mse_1r)
+    mse_1c   = np.log10(mse_1c)
+    mse_2r   = np.log10(mse_2r)
+    mse_1r1c = np.log10(mse_1r1c)
+    mse_2c   = np.log10(mse_2c)
+    mse_3r   = np.log10(mse_3r)
+    mse_2r1c = np.log10(mse_2r1c)
+    mse_1r2c = np.log10(mse_1r2c)
+    mse_3c   = np.log10(mse_3c)
+    
+    # Everything together then gives data_x that is used to train the classifier
+    data_x = np.hstack((mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c, out_re))
+    
+    return data_x
 
 def create_training_data_classifier(length, grid_x, with_bounds, data_dir):
     '''
@@ -455,63 +515,13 @@ def create_training_data_classifier(length, grid_x, with_bounds, data_dir):
         labels_and_params[i] = np.hstack([labels_and_params[i], np.zeros([labels_and_params[i].shape[0], fillup])])
     labels_and_params = np.vstack(labels_and_params)
     print('Maximum number of samples to be created: ', len(labels_and_params))
-    
-    # Get Scipy predictions for each sample
-    print('Getting SciPy predictions...')
-    params_1r, params_1c, params_2r, params_1r1c, params_2c, \
-    params_3r, params_2r1c, params_1r2c, params_3c = get_all_scipy_preds_dataprep(grid_x, out_re, with_bounds=with_bounds)
-    
-    # Drop samples that couldn't be fitted
-    params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c, \
-    out_re, labels_and_params = drop_not_finite_rows(
-        params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c, 
-        out_re, labels_and_params
-        )
 
-    # Calculate out_re for the different predicted pole configurations
-    out_re_1r   = pole_curve_calc2(pole_class=0, pole_params=params_1r,   grid_x=grid_x)
-    out_re_1c   = pole_curve_calc2(pole_class=1, pole_params=params_1c,   grid_x=grid_x)
-    out_re_2r   = pole_curve_calc2(pole_class=2, pole_params=params_2r,   grid_x=grid_x)
-    out_re_1r1c = pole_curve_calc2(pole_class=3, pole_params=params_1r1c, grid_x=grid_x)
-    out_re_2c   = pole_curve_calc2(pole_class=4, pole_params=params_2c,   grid_x=grid_x)
-    out_re_3r   = pole_curve_calc2(pole_class=5, pole_params=params_3r,   grid_x=grid_x)
-    out_re_2r1c = pole_curve_calc2(pole_class=6, pole_params=params_2r1c, grid_x=grid_x)
-    out_re_1r2c = pole_curve_calc2(pole_class=7, pole_params=params_1r2c, grid_x=grid_x)
-    out_re_3c   = pole_curve_calc2(pole_class=8, pole_params=params_3c,   grid_x=grid_x)
+    # Get data_x
+    data_x = get_data_x(out_re=out_re, grid_x=grid_x, with_bounds=with_bounds)  
     
-    # Calculate the different MSEs
-    mse_1r   = mse(out_re, out_re_1r,   ax=1).reshape(-1,1)
-    mse_1c   = mse(out_re, out_re_1c,   ax=1).reshape(-1,1)
-    mse_2r   = mse(out_re, out_re_2r,   ax=1).reshape(-1,1)
-    mse_1r1c = mse(out_re, out_re_1r1c, ax=1).reshape(-1,1)
-    mse_2c   = mse(out_re, out_re_2c,   ax=1).reshape(-1,1)
-    mse_3r   = mse(out_re, out_re_3r,   ax=1).reshape(-1,1)
-    mse_2r1c = mse(out_re, out_re_2r1c, ax=1).reshape(-1,1)
-    mse_1r2c = mse(out_re, out_re_1r2c, ax=1).reshape(-1,1)
-    mse_3c   = mse(out_re, out_re_3c,   ax=1).reshape(-1,1)
-    
-    # Apply log10 to the MSEs to bring them to a similiar scale
-    mse_1r   = np.log10(mse_1r)
-    mse_1c   = np.log10(mse_1c)
-    mse_2r   = np.log10(mse_2r)
-    mse_1r1c = np.log10(mse_1r1c)
-    mse_2c   = np.log10(mse_2c)
-    mse_3r   = np.log10(mse_3r)
-    mse_2r1c = np.log10(mse_2r1c)
-    mse_1r2c = np.log10(mse_1r2c)
-    mse_3c   = np.log10(mse_3c)
-    
-    # Get rid of possible infinities that can occurr after log10 for very small MSE below machine accuracy
-    mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, \
-    params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c, \
-    out_re, labels_and_params = drop_not_finite_rows(
-        mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, 
-        params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c, 
-        out_re, labels_and_params
-        )
-    
-    # Everything together then gives data_x that is used to train the classifier
-    data_x = np.hstack((mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c, out_re))
+    ## Get rid of possible infinities that can occurr after log10 for very small MSE below machine accuracy and if the sample couldn't be fitted
+    data_x, labels_and_params = drop_not_finite_rows(
+                                data_x, labels_and_params)
     
     # Seperate labels and params array
     params = labels_and_params[:,1:]
@@ -527,7 +537,9 @@ def create_training_data_classifier(length, grid_x, with_bounds, data_dir):
     print("Successfully saved x data of shape ", np.shape(data_x))
     print("Successfully saved y data of shape ", np.shape(labels))
     print("Successfully saved params data of shape ", np.shape(params))
-
+    print('Samples per Class:')
+    for i in range(9):
+        print(str(i) + ': ', np.sum(labels==i))
     return
 
 

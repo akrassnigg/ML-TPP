@@ -21,14 +21,14 @@ parameters:
     max: 512  # maybe too large? usually 32 is good
   learning_rate_classifier:
     distribution: log_uniform
-    min: -13.815510557964275 #2.302585092994046 * (-6.0)
+    min: -13.815510557964275 #2.302585092994046 * (-6.0) # may be too small
     max: -2.302585092994046  #2.302585092994046 * (-1.0)
   optimizer_classifier:
     distribution: categorical
     values: ["Adam", "AdamW", "Adagrad", "Adadelta", "RMSprop", "SGD"]
   weight_decay_classifier:
     distribution: log_uniform
-    min: -20.723265836946414 #2.302585092994046 * (-9.0)
+    min: -20.723265836946414 #2.302585092994046 * (-9.0) # too small?
     max: -2.302585092994046  #2.302585092994046 * (-1.0)
   drop_prob_classifier:
     distribution: uniform

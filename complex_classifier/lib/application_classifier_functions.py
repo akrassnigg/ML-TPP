@@ -11,96 +11,11 @@ import numpy as np
 import os
 import torch
 import scipy
-import sys
 
 from lib.standardization_functions import std_data
-from lib.scipy_fit_functions import get_all_scipy_preds
 from lib.architectures import FC1
 from lib.pole_classifier import Pole_Classifier
-from lib.curve_calc_functions import pole_curve_calc2
-
-
-def prepare_data9(grid_x, data_y, with_bounds=False, do_std=False, std_path=None):
-    '''
-    Prepare Data (a single sample) for the NN Classifier (9 Classes)
-    
-    Note: This is used, when the finished classifier is applied to real data. 
-    For data generation use lib.training_data_generation_classifier.create_training_data_classifier instead.
-    
-    grid_x: ndarray of shape (n,) or (1,n), where n is the number of gridpoints
-        Gridpoints
-    
-    data_y: ndarray of shape (n,) or (1,n), where n is the number of gridpoints
-        Function Values
-    
-    with_bounds: bool, default=False
-        Shall Scipy curve_fit be restricted to boundaries given by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max
-    
-    do_std: bool, default=False
-        Shall the data be standardized to the standardization, that was used to train the Classifier?
-    
-    std_path: str, default=None
-        Only needed if do_std=True: Path to the folder containing variances.npy and means.npy (names must be exactly like this!)
-        
-    returns: ndarray of shape (1, 69+n), where n is the number of gridpoints
-        contains: mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c, data_y
-    '''
-    grid_x = grid_x.reshape(-1)
-    data_y = data_y.reshape(-1)
-
-    # Get SciPy predictions
-    params_tmp = get_all_scipy_preds(grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
-    params_1r   = np.array(params_tmp[0]).reshape(1,-1)
-    params_1c   = np.array(params_tmp[1]).reshape(1,-1)
-    params_2r   = np.array(params_tmp[2]).reshape(1,-1)
-    params_1r1c = np.array(params_tmp[3]).reshape(1,-1)
-    params_2c   = np.array(params_tmp[4]).reshape(1,-1)
-    params_3r   = np.array(params_tmp[5]).reshape(1,-1)
-    params_2r1c = np.array(params_tmp[6]).reshape(1,-1)
-    params_1r2c = np.array(params_tmp[7]).reshape(1,-1)
-    params_3c   = np.array(params_tmp[8]).reshape(1,-1)
-    
-    # Calculate predicted curves
-    out_re_1r   = pole_curve_calc2(pole_class=0, pole_params=params_1r, grid_x=grid_x)
-    out_re_1c   = pole_curve_calc2(pole_class=1, pole_params=params_1c, grid_x=grid_x)
-    out_re_2r   = pole_curve_calc2(pole_class=2, pole_params=params_2r, grid_x=grid_x)
-    out_re_1r1c = pole_curve_calc2(pole_class=3, pole_params=params_1r1c, grid_x=grid_x)
-    out_re_2c   = pole_curve_calc2(pole_class=4, pole_params=params_2c, grid_x=grid_x)
-    out_re_3r   = pole_curve_calc2(pole_class=5, pole_params=params_3r, grid_x=grid_x)
-    out_re_2r1c = pole_curve_calc2(pole_class=6, pole_params=params_2r1c, grid_x=grid_x)
-    out_re_1r2c = pole_curve_calc2(pole_class=7, pole_params=params_1r2c, grid_x=grid_x)
-    out_re_3c   = pole_curve_calc2(pole_class=8, pole_params=params_3c, grid_x=grid_x)
-    
-    # Calculate mse_s
-    mse_1r   = np.mean((data_y - out_re_1r)  **2, axis=1)
-    mse_1c   = np.mean((data_y - out_re_1c)  **2, axis=1)
-    mse_2r   = np.mean((data_y - out_re_2r)  **2, axis=1)
-    mse_1r1c = np.mean((data_y - out_re_1r1c)**2, axis=1)
-    mse_2c   = np.mean((data_y - out_re_2c)  **2, axis=1)
-    mse_3r   = np.mean((data_y - out_re_3r)  **2, axis=1)
-    mse_2r1c = np.mean((data_y - out_re_2r1c)**2, axis=1)
-    mse_1r2c = np.mean((data_y - out_re_1r2c)**2, axis=1)
-    mse_3c   = np.mean((data_y - out_re_3c)  **2, axis=1)
-    
-    # Apply log10 to mse_s, to get them on a similiar scale, which makes training easier
-    mse_1r   = np.log10(mse_1r)
-    mse_1c   = np.log10(mse_1c)
-    mse_2r   = np.log10(mse_2r)
-    mse_1r1c = np.log10(mse_1r1c)
-    mse_2c   = np.log10(mse_2c)
-    mse_3r   = np.log10(mse_3r)
-    mse_2r1c = np.log10(mse_2r1c)
-    mse_1r2c = np.log10(mse_1r2c)
-    mse_3c   = np.log10(mse_3c)
-    
-    data_x = np.hstack((mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c, data_y))
-    data_x = data_x.reshape(1,-1)
-    # Apply standardization
-    if do_std:
-        data_x = std_data(data=data_x, std_path=std_path, with_mean=True)
-        
-    return data_x
-
+from lib.training_data_generation_classifier import get_data_x
 
 def get_classifier_preds(grid_x, data_y, with_bounds, do_std, model_path):
     '''
@@ -128,14 +43,21 @@ def get_classifier_preds(grid_x, data_y, with_bounds, do_std, model_path):
         Class Predictions: Hard Averaging, Soft Averaging, Array with Predictions from the individual Checkpoints
     '''
     # Data Preparation
-    data_classifier = prepare_data9(data_y=data_y, grid_x=grid_x, with_bounds=with_bounds, do_std=do_std, std_path=os.path.join(model_path, 'data/'))
+    # Get data_x
+    data_x = get_data_x(out_re=data_y, grid_x=grid_x, with_bounds=with_bounds) 
+    # Apply standardization
+    if do_std:
+        data_x = std_data(data=data_x, std_path=os.path.join(model_path, 'data/'), with_mean=True)
+    
+    # cut away out_re, which was not used to train the classifier
+    data_x = data_x[:,0:69]
     
     # Get predictions from Classifiers
     class_pred = []
     for filename in os.listdir(os.path.join(model_path, 'models/')):
         model = Pole_Classifier.load_from_checkpoint(os.path.join(model_path, 'models/', filename))
         model.eval()
-        pred = model(torch.from_numpy(data_classifier.astype('float32')))
+        pred = model(torch.from_numpy(data_x.astype('float32')))
         class_pred.append( pred.detach().numpy() )
         del model
     class_pred = np.array(class_pred)
