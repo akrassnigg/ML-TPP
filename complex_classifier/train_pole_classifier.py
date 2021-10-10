@@ -122,8 +122,8 @@ if __name__ == '__main__':
     
     wandb.init(config=hyperparameters,
                entity="ml-tpp", project="pole_classifier",
-               group="Experiment: shorter log grid ",
-               notes="Classifier DataSet Experiment: Cut off our default grid at some cutoff value, dropping all gridpoints above. Compare accuracies to default grid.",
+               group="Experiment: retry fits ",
+               notes="Classifier DataSet Experiment: In SciPy curve_fit: Set lower value for maxfev and retry fits 9 times, if they failed; with randomized p0",
                tags = ["Classifier", "DataSet Experiment"])
 
     logger = WandbLogger()  

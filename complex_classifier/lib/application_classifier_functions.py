@@ -16,8 +16,11 @@ from lib.standardization_functions import std_data
 from lib.architectures import FC1
 from lib.pole_classifier import Pole_Classifier
 from lib.training_data_generation_classifier import get_data_x
+from parameters import xtol_classifier
 
-def get_classifier_preds(grid_x, data_y, with_bounds, do_std, model_path):
+def get_classifier_preds(grid_x, data_y, do_std, model_path, 
+                         with_bounds=True, p0='default', method='trf', 
+                         maxfev=100000, num_tries=1, xtol = xtol_classifier):
     '''
     Get predictions from trained Pole Classifier(s) 
     
@@ -26,9 +29,6 @@ def get_classifier_preds(grid_x, data_y, with_bounds, do_std, model_path):
     
     data_y: ndarray of shape (n,) or (1,n), where n is the number of gridpoints
         Function Values
-    
-    with_bounds: bool
-        Shall Scipy curve_fit be restricted to boundaries given by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max? (see also: prepare_data9)
     
     do_std: bool
         Shall the data be standardized to the standardization, that was used to train the Classifier?
@@ -39,12 +39,35 @@ def get_classifier_preds(grid_x, data_y, with_bounds, do_std, model_path):
             
             If do_std=True, there must additionally be a subdirectory called 'data' containing the standardization files called "variances.npy" and "means.npy".
     
+    with_bounds: bool, default=True
+        Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
+    
+    p0: 'default' or 'random', default='default'
+        Initial guesses for parameter search. 
+        
+        If 'default', the SciPy curve_fit default behaviour is used 
+        
+        If 'random', random guesses are used (use this if num_tries>1)
+        
+    method: str = 'trf', 'dogbox' or 'lm', default='trf'
+        The optimization method
+        
+    maxfev: int > 0 , default=100000
+        Maximal number of function evaluations (see SciPy's curve_fit)
+        
+    num_tries: int > 0, default=1
+        The number of times the fit shall be tried (with varying initial guesses)
+        
+    xtol: float or list of floats, default read from parameters file
+        Convergence criterion (see SciPy's curve_fit)    
+    
     returns: int, int, ndarray of shape (l,), where l is the number of checkpoints in the "models" subdirectory
         Class Predictions: Hard Averaging, Soft Averaging, Array with Predictions from the individual Checkpoints
     '''
     # Data Preparation
     # Get data_x
-    data_x = get_data_x(out_re=data_y, grid_x=grid_x, with_bounds=with_bounds) 
+    data_x = get_data_x(out_re=data_y, grid_x=grid_x, with_bounds=with_bounds, p0=p0,
+                        method=method, maxfev=maxfev, num_tries=num_tries, xtol=xtol) 
     # Apply standardization
     if do_std:
         data_x = std_data(data=data_x, std_path=os.path.join(model_path, 'data/'), with_mean=True)

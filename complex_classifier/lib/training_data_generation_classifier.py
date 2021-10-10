@@ -21,6 +21,7 @@ from lib.standardization_functions import rm_std_data, std_data_new
 from parameters import fact_classifier, dst_min_classifier
 from parameters import standard_re
 from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
+from parameters import xtol_classifier
 
 
 def drop_small_poles(pole_class, pole_params, point_x, fact):
@@ -404,7 +405,8 @@ def drop_classifier_samples_afterwards(with_mean, data_dir, grid_x=standard_re, 
     
     return None
 
-def get_data_x(out_re, grid_x, with_bounds):
+def get_data_x(out_re, grid_x, with_bounds=True,
+               p0='default', method='trf', maxfev=100000, num_tries=1, xtol = xtol_classifier):
     '''
     Generates the unstandardized network input from the pole curves (out_re)
     
@@ -414,9 +416,28 @@ def get_data_x(out_re, grid_x, with_bounds):
     grid_x: numpy.ndarray of shape (n,) or (1,n)
         Gridpoints, where the function/pole configuration shall be evaluated
         
-    with_bounds: bool, default=False
+    with_bounds: bool, default=True
         Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
+    
+    p0: 'default' or 'random', default='default'
+        Initial guesses for parameter search. 
         
+        If 'default', the SciPy curve_fit default behaviour is used 
+        
+        If 'random', random guesses are used (use this if num_tries>1)
+        
+    method: str = 'trf', 'dogbox' or 'lm', default='trf'
+        The optimization method
+        
+    maxfev: int > 0 , default=100000
+        Maximal number of function evaluations (see SciPy's curve_fit)
+        
+    num_tries: int > 0, default=1
+        The number of times the fit shall be tried (with varying initial guesses)
+        
+    xtol: float or list of floats, default read from parameters file
+        Convergence criterion (see SciPy's curve_fit)    
+    
     returns: numpy.ndarray of shape (m,9+60+len(grid_x))
         data_x (network input), not yet normalized
     '''
@@ -425,7 +446,9 @@ def get_data_x(out_re, grid_x, with_bounds):
     # Get Scipy predictions for each sample
     print('Getting SciPy predictions...')
     params_1r, params_1c, params_2r, params_1r1c, params_2c, \
-    params_3r, params_2r1c, params_1r2c, params_3c = get_all_scipy_preds_dataprep(grid_x, out_re, with_bounds=with_bounds)
+    params_3r, params_2r1c, params_1r2c, params_3c = get_all_scipy_preds_dataprep(grid_x, out_re, with_bounds=with_bounds, p0=p0,
+                                                                                  method=method, maxfev=maxfev, num_tries=num_tries, 
+                                                                                  xtol=xtol)
 
     # Calculate out_re for the different predicted pole configurations
     out_re_1r   = pole_curve_calc2(pole_class=0, pole_params=params_1r,   grid_x=grid_x)

@@ -46,7 +46,7 @@ log_dir_classifier    = dir_classifier + 'logs/'
 models_dir_classifier = dir_classifier + 'models/'
 
 # Number of data points
-n_examples_classifier = 100000  # can be a single int or a list of ints, one for each class (which can also be 0 to drop the class).
+n_examples_classifier = 10#000  # can be a single int or a list of ints, one for each class (which can also be 0 to drop the class).
 num_use_data_classifier = 0# can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
 
 # Properties of drop_small_poles and drop_near_poles
@@ -54,7 +54,7 @@ fact_classifier    = np.inf  # set to very large value to not drop any samples
 dst_min_classifier = 0.0     # set to 0 to not drop any samples
 
 # Scipy curve_fit convergence parameter
-xtol = 1e-8  # can be a single int or a list of ints, one for each class 
+xtol_classifier = 1e-8  # can be a single int or a list of ints, one for each class 
 
 # Data split
 train_portion_classifier = 0.8
@@ -83,7 +83,7 @@ drop_prob_6_classifier  = 0.0
 ### Training hparams
 optimizer_classifier     = 'Adam'
 batch_size_classifier    = 32
-learning_rate_classifier = 1e-4
+learning_rate_classifier = 1e-3
 epochs_classifier        = int(1e15)
 num_runs_classifier      = 1
 

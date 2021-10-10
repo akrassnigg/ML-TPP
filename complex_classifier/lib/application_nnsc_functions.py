@@ -13,9 +13,12 @@ import os
 from lib.application_regressor_functions import get_regressor_pred
 from lib.scipy_fit_functions import get_scipy_pred
 from parameters import regressor_subdirs
+from parameters import xtol_classifier
 
 
-def get_nnsc_pred(pole_class, grid_x, data_y, with_bounds, model_path):
+def get_nnsc_pred(pole_class, grid_x, data_y, model_path, 
+                  with_bounds=True, method='trf', maxfev=100000, 
+                  num_tries=1, xtol = xtol_classifier):
     '''
     Find optimal parameters for fitting data to a given Pole Configuration; 
     First get predictions from a NN Regressor, then give them as p0 to scipy curve_fit
@@ -26,15 +29,27 @@ def get_nnsc_pred(pole_class, grid_x, data_y, with_bounds, model_path):
     grid_x, data_y: ndarray of shape (n,) or (1,n)
         Points to be used for fitting
     
-    with_bounds: bool
-        Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
-        
     model_path: str
         Path to folder containing all necessary files:
             There must be a subdirectory called 'models' containing atleast one PL checkpoint of the Regressor.
             
             There must additionally be a subdirectory called 'data' containing the standardization files called 
             "variances.npy" for the inputs and "variances_params.npy", "means_params.npy" for the outputs.
+            
+    with_bounds: bool, default=True
+        Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
+        
+    method: str = 'trf', 'dogbox' or 'lm', default='trf'
+        The optimization method
+        
+    maxfev: int > 0 , default=100000
+        Maximal number of function evaluations (see SciPy's curve_fit)
+        
+    num_tries: int > 0, default=1
+        The number of times the fit shall be tried (with varying initial guesses)
+        
+    xtol: float or list of floats, default read from parameters file
+        Convergence criterion (see SciPy's curve_fit)
     
     returns: ndarray of shape (k,)
         Optimized parameters of the chosen Pole Configuration/Class
@@ -43,12 +58,15 @@ def get_nnsc_pred(pole_class, grid_x, data_y, with_bounds, model_path):
     pred_nn   = get_regressor_pred(data_y=data_y, model_path=model_path)[0]
 
     # Scipy Fit
-    pred_nnsc = get_scipy_pred(pole_class=pole_class, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds, p0=pred_nn)
+    pred_nnsc = get_scipy_pred(pole_class=pole_class, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds,
+                        method=method, maxfev=maxfev, num_tries=num_tries, xtol=xtol, p0=pred_nn)
 
     return pred_nnsc
 
 
-def get_all_nnsc_preds(grid_x, data_y, with_bounds, model_path):
+def get_all_nnsc_preds(grid_x, data_y, model_path, 
+                       with_bounds=True, method='trf', maxfev=100000, 
+                       num_tries=1, xtol = xtol_classifier):
     '''
     Find optimal parameters for fitting data to all 9 different Pole Configurations; 
     First get predictions from a NN Regressor, then give them as p0 to scipy curve_fit
@@ -69,6 +87,21 @@ def get_all_nnsc_preds(grid_x, data_y, with_bounds, model_path):
                 
                 There must additionally be a subsubdirectory called 'data' containing the standardization files called 
                 "variances.npy" for the inputs and "variances_params.npy", "means_params.npy" for the outputs.
+                
+    with_bounds: bool, default=True
+        Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
+        
+    method: str = 'trf', 'dogbox' or 'lm', default='trf'
+        The optimization method
+        
+    maxfev: int > 0 , default=100000
+        Maximal number of function evaluations (see SciPy's curve_fit)
+        
+    num_tries: int > 0, default=1
+        The number of times the fit shall be tried (with varying initial guesses)
+        
+    xtol: float or list of floats, default read from parameters file
+        Convergence criterion (see SciPy's curve_fit)
 
     returns: list of 9 ndarrays of shapes (k_i,), i=0...8
         Optimized parameters of the different Pole Configurations/Classes
@@ -77,7 +110,8 @@ def get_all_nnsc_preds(grid_x, data_y, with_bounds, model_path):
     for subdir in regressor_subdirs:
         try:
             pred = get_nnsc_pred(model_path=os.path.join(model_path, subdir + '/'), pole_class=int(subdir[0]), 
-                                 grid_x=grid_x, data_y=data_y, with_bounds=with_bounds)
+                                 grid_x=grid_x, data_y=data_y, with_bounds=with_bounds,
+                                 method=method, maxfev=maxfev, num_tries=num_tries, xtol=xtol)
         except:
             pred = np.array([])
         preds.append(pred)
