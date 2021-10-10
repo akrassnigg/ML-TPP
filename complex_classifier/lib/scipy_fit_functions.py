@@ -351,8 +351,12 @@ def get_all_scipy_preds(grid_x, data_y, with_bounds=True,
     '''
     params = []
     for i in range(9):
-        params.append(get_scipy_pred(pole_class=i, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds, p0=p0,
-                                     method=method, maxfev=maxfev, num_tries=num_tries, xtol=xtol))   
+        params_tmp = get_scipy_pred(pole_class=i, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds, p0=p0,
+                                     method=method, maxfev=maxfev, num_tries=num_tries, xtol=xtol)
+        params.append(params_tmp)
+        if np.isnan(params_tmp[0]): # if one fit fails, the sample will be dropped, so break to not waste time
+            params = [np.array([np.nan for i in range(j)]) for j in [2,4,4,6,8,6,8,10,12]]
+            break    
     return params
 
 
