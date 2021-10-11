@@ -46,7 +46,7 @@ log_dir_classifier    = dir_classifier + 'logs/'
 models_dir_classifier = dir_classifier + 'models/'
 
 # Number of data points
-n_examples_classifier = 10#000  # can be a single int or a list of ints, one for each class (which can also be 0 to drop the class).
+n_examples_classifier = 10000  # can be a single int or a list of ints, one for each class (which can also be 0 to drop the class).
 num_use_data_classifier = 0# can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
 
 # Properties of drop_small_poles and drop_near_poles
@@ -55,6 +55,10 @@ dst_min_classifier = 0.0     # set to 0 to not drop any samples
 
 # Scipy curve_fit convergence parameter
 xtol_classifier = 1e-8  # can be a single int or a list of ints, one for each class 
+p0_classifier   = 'default'
+method_classifier = 'trf'
+maxfev_classifier = 100000
+num_tries_classifier = 1
 
 # Data split
 train_portion_classifier = 0.8
@@ -81,17 +85,20 @@ drop_prob_4_classifier  = 0.0
 drop_prob_5_classifier  = 0.0   
 drop_prob_6_classifier  = 0.0    
 ### Training hparams
-optimizer_classifier     = 'Adam'
-batch_size_classifier    = 32
-learning_rate_classifier = 1e-3
-epochs_classifier        = int(1e15)
-num_runs_classifier      = 1
+optimizer_classifier          = 'Adam'
+batch_size_classifier         = 32
+learning_rate_classifier      = 1e-3
+epochs_classifier             = int(1e15)
+val_check_interval_classifier = 0.1
+es_patience_classifier        = 20
+num_runs_classifier           = 1
 
 ##############################################################################
 ##############   Regressors   ################################################
 ##############################################################################
 # Class to be learned
-class_regressor = 0
+class_regressor = 7
+#class_regressor = 0
 
 # Directories
 regressor_subdirs = ['0-1r',
@@ -103,6 +110,8 @@ regressor_subdirs = ['0-1r',
                    '6-2r1c',
                    '7-1r2c',
                    '8-3c',]  
+#regressor_subdirs = [ '7-1r2c' ]
+
 dir_regressors       = './data_regressor/'
 dir_regressor        = dir_regressors + regressor_subdirs[class_regressor] + '/'
 data_dir_regressor   = dir_regressor + 'data/'
@@ -110,7 +119,12 @@ log_dir_regressor    = dir_regressor + 'logs/'
 models_dir_regressor = dir_regressor + 'models/'
 
 # Number of data points
-n_examples_regressor = 2000000
+n_examples_regressor = 1000000
+num_use_data_regressor = 0# single int; Set to 0 to use all data available
+
+# Properties of drop_small_poles and drop_near_poles
+fact_regressor    = np.inf  # set to very large value to not drop any samples
+dst_min_regressor = 0.0     # set to 0 to not drop any samples
 
 # Data split
 train_portion_regressor = 0.98
@@ -122,22 +136,32 @@ test_portion_regressor  = 0.01
 architecture_regressor = 'FC6'
 out_list               = [2,4,4,6,8,6,8,10,12]
 out_features_regressor = out_list[class_regressor]  # depends on the pole class
-in_features_regressor  = 64
-hidden_dim_1_regressor = 128
+in_features_regressor  = len(standard_re)
+hidden_dim_1_regressor = 32
 hidden_dim_2_regressor = hidden_dim_1_regressor
 hidden_dim_3_regressor = hidden_dim_2_regressor
 hidden_dim_4_regressor = hidden_dim_3_regressor
 hidden_dim_5_regressor = hidden_dim_4_regressor
 hidden_dim_6_regressor = hidden_dim_5_regressor 
 ### Regularization
-weight_decay_regressor       = 0.0
+weight_decay_regressor = 0.0
+drop_prob_1_regressor  = 0.0   
+drop_prob_2_regressor  = 0.0   
+drop_prob_3_regressor  = 0.0   
+drop_prob_4_regressor  = 0.0   
+drop_prob_5_regressor  = 0.0   
+drop_prob_6_regressor  = 0.0 
 ### Training hparams
+optimizer_regressor          = 'Adam'
 batch_size_regressor         = 1000
 learning_rate_regressor      = 1e-3   
 epochs_regressor             = int(1e15)
-val_check_interval_regressor = 100
-num_use                      = 50
-training_step_regressor      = 0
+val_check_interval_regressor = 0.1
+es_patience_regressor        = 20
+num_epochs_use_regressor     = int(1e15)  # after how many epochs shall the data be updated
+num_runs_regressor           = 1
+training_step_regressor      = 0 #0: start from scratch, 1: resume training
+name_ckpt_regressor          = 'name.ckpt' # name of the ckpt to resume from
 
 
 

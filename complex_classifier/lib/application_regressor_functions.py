@@ -12,9 +12,7 @@ import torch
 import os
 
 from lib.standardization_functions import std_data, rm_std_data
-from lib.architectures import FC6
 from lib.pole_regressor import Pole_Regressor
-from parameters import regressor_subdirs
     
     
 def get_regressor_pred(data_y, model_path):
@@ -55,7 +53,7 @@ def get_regressor_pred(data_y, model_path):
     return params_pred
 
 
-def get_all_regressor_preds(data_y, model_path):
+def get_all_regressor_preds(data_y, model_path, regressor_subdirs):
     '''
     Get predictions from trained Pole Regressors for all 9 different Pole Configurations
     
@@ -72,6 +70,9 @@ def get_all_regressor_preds(data_y, model_path):
                 
                 There must additionally be a subsubdirectory called 'data' containing the standardization files called 
                 "variances.npy" for the inputs and "variances_params.npy", "means_params.npy" for the outputs.
+    
+    regressor_subdirs: list of str        
+        list of the names of the subdirs of the individual regressors
     
     returns: list of 9 ndarrays of shapes (m, k_i), i=0...8
         Optimized parameters of the different Pole Configurations/Classes

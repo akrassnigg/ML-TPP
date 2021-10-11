@@ -16,9 +16,13 @@ from lib.get_params_functions import get_train_params
 from lib.curve_calc_functions import pole_curve_calc
 from lib.scipy_fit_functions import pole_config_organize
 from lib.standardization_functions import std_data_new, std_data
+from lib.training_data_generation_classifier import drop_small_poles_2, drop_near_poles
 
 
-def create_training_data_regressor(mode, length, pole_class, grid_x, data_dir):
+def create_training_data_regressor(mode, length, pole_class, grid_x, data_dir, fact, dst_min,
+                                   re_max, re_min, im_max, im_min, 
+                                   coeff_re_max, coeff_re_min, 
+                                   coeff_im_max, coeff_im_min):
     '''
     Creates training data for the NN regressor
     
@@ -41,11 +45,25 @@ def create_training_data_regressor(mode, length, pole_class, grid_x, data_dir):
     data_dir: str
         Path to the folder, where data and standardization files shall be stored/ loaded from
         
+    fact: numeric>=1
+        Drops parameter configureations, that contain poles, whose out_re is a factor fact smaller, than out_re of the other poles in the sample
+        
+    dst_min: numeric>=0
+        Drops parameter configureations, that contain poles, whose positions are nearer to each other than dst_min (complex, euclidean norm)
+        
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
+        Define a box. Parameter configurations are searched in this box if with_bounds=True
+        
     returns: None or 2 numpy.ndarrays of shapes (length,n) and (length,k), where n is the number of gridpoints and k depends on the pole class
         see: mode
     '''
     # Generate pole configurations
-    params = get_train_params(pole_class=pole_class, m=length)
+    params = get_train_params(pole_class=pole_class, m=length, 
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
+    params = params[drop_small_poles_2(pole_class=pole_class, pole_params=params, grid_x=grid_x, fact=fact)]
+    params = params[drop_near_poles(pole_class=pole_class, pole_params=params, dst_min=dst_min)]
     # Calculate the pole curves
     out_re = pole_curve_calc(pole_class=pole_class, pole_params=params, grid_x=grid_x)
     # Remove collumns, that contain only zeros (imaginary parts of real poles)

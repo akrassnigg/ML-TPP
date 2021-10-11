@@ -17,9 +17,6 @@ from torch.utils.data import Dataset, DataLoader, random_split
 import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
 
-from parameters import class_regressor, data_dir_regressor
-from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
-from parameters import num_use
 from lib.training_data_generation_regressor import create_training_data_regressor
 from lib.architectures import FC6
 from lib.standardization_functions import rm_std_data
@@ -29,11 +26,52 @@ from lib.standardization_functions import rm_std_data
 ###################   Data-related Classes   #################################
 ##############################################################################
 class PoleDataSet_Regressor(Dataset):
-    def __init__(self, pole_class, data_x, data_dir):
+    """
+    DataSet of the Pole Regressor
+    
+    pole_class: int
+        The class to be trained
+    
+    grid_x: numpy.ndarray of shape (n,) or (1,n)
+        Gridpoints, where the function/pole configuration shall be evaluated
+    
+    data_dir: str
+        Directory containing data files
+    
+    num_use_data: int
+        How many of the available datapoints shall be used?
+    
+    num_epochs_use: int
+        After how many training epochs shall the data be refreshed?
+    
+    fact: numeric>=1
+        Drops parameter configureations, that contain poles, whose out_re is a factor fact smaller, than out_re of the other poles in the sample
+        
+    dst_min: numeric>=0
+        Drops parameter configureations, that contain poles, whose positions are nearer to each other than dst_min (complex, euclidean norm)
+    
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: float
+        The parameter boundaries
+    """
+    def __init__(self, pole_class, grid_x, data_dir, num_use_data, num_epochs_use, fact, dst_min,
+                 re_max, re_min, im_max, im_min, 
+                 coeff_re_max, coeff_re_min, 
+                 coeff_im_max, coeff_im_min):
         self.count      = 0  # counts the number of times __getitem__ was called
         self.pole_class = pole_class
         self.data_dir   = data_dir
-        self.data_x     = data_x
+        self.grid_x     = grid_x
+        self.num_epochs_use = num_epochs_use
+        self.fact       = fact
+        self.dst_min    = dst_min
+        self.re_max     = re_max
+        self.re_min     = re_min
+        self.im_max     = im_max
+        self.im_min     = im_min
+        self.coeff_re_max = coeff_re_max
+        self.coeff_re_min = coeff_re_min
+        self.coeff_im_max = coeff_im_max
+        self.coeff_im_min = coeff_im_min
 
         self.data_X = np.load(os.path.join(data_dir, 'various_poles_data_regressor_x.npy'), allow_pickle=True).astype('float32')
         self.data_Y = np.load(os.path.join(data_dir, 'various_poles_data_regressor_y.npy'), allow_pickle=True).astype('float32')
@@ -41,11 +79,29 @@ class PoleDataSet_Regressor(Dataset):
         print("Checking shape of loaded data: X: ", np.shape(self.data_X))
         print("Checking shape of loaded data: y: ", np.shape(self.data_Y))
         
+        if num_use_data ==0:   #use all data available
+            None
+        else:
+            #seed_afterward = np.random.randint(low=0, high=1e3)
+            #np.random.seed(1234)
+            indices = np.arange(len(self.data_Y))
+            np.random.shuffle(indices)
+            indices = indices[0:num_use_data]
+            #np.random.seed(seed_afterward)
+            self.data_X = self.data_X[indices]
+            self.data_Y = self.data_Y[indices]
+            print('Successfully selected a Subset of the Data...')
+            print("Checking shape of data: X Subset: ", np.shape(self.data_X))
+            print("Checking shape of data: y Subset: ", np.shape(self.data_Y))
+        
     def update_dataset(self):
         num_data = len(self)
         
-        data_x, data_y = create_training_data_regressor(length=num_data, pole_class=self.pole_class, mode='update', 
-                         data_x=self.data_x, data_dir=self.data_dir)
+        data_x, data_y = create_training_data_regressor(mode='update', length=num_data, pole_class=self.pole_class, 
+                         grid_x=self.grid_x, data_dir=self.data_dir, fact=self.fact, dst_min=self.dst_min,
+                         re_max=self.re_max, re_min=self.re_min, im_max=self.im_max, im_min=self.im_min, 
+                         coeff_re_max=self.coeff_re_max, coeff_re_min=self.coeff_re_min, 
+                         coeff_im_max=self.coeff_im_max, coeff_im_min=self.coeff_im_min)
             
         self.data_X = np.array(data_x, dtype='float32')
         self.data_Y = np.array(data_y, dtype='float32')
@@ -59,7 +115,7 @@ class PoleDataSet_Regressor(Dataset):
 
     def __getitem__(self, idx):
         
-        if self.count == num_use*len(self):
+        if self.count == self.num_epochs_use*len(self):
             self.update_dataset()
             self.count = 0
         
@@ -68,18 +124,70 @@ class PoleDataSet_Regressor(Dataset):
      
         
 class PoleDataModule_Regressor(pl.LightningDataModule):
-    def __init__(self, pole_class, data_x, data_dir: str, batch_size: int, train_portion: float, validation_portion: float, test_portion: float):
+    """
+    DataModule of the Pole Regressor
+    
+    pole_class: int
+        The class to be trained
+    
+    grid_x: numpy.ndarray of shape (n,) or (1,n)
+        Gridpoints, where the function/pole configuration shall be evaluated
+    
+    data_dir: str
+        Directory containing data files
+    
+    batch_size: int
+    
+    train_portion, validation_portion, test_portion: float
+    
+    num_use_data: int
+        How many of the available datapoints shall be used?
+    
+    num_epochs_use: int
+        After how many training epochs shall the data be refreshed?
+    
+    fact: numeric>=1
+        Drops parameter configureations, that contain poles, whose out_re is a factor fact smaller, than out_re of the other poles in the sample
+        
+    dst_min: numeric>=0
+        Drops parameter configureations, that contain poles, whose positions are nearer to each other than dst_min (complex, euclidean norm)
+    
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: float
+        The parameter boundaries
+    """
+    def __init__(self, pole_class, grid_x, data_dir: str, batch_size: int, train_portion: float, validation_portion: float, test_portion: float,
+                 num_use_data, num_epochs_use, fact, dst_min,
+                 re_max, re_min, im_max, im_min, 
+                 coeff_re_max, coeff_re_min, 
+                 coeff_im_max, coeff_im_min):
         super().__init__()
         self.pole_class         = pole_class
-        self.data_x             = data_x
+        self.grid_x             = grid_x
         self.data_dir           = data_dir
         self.batch_size         = batch_size
         self.train_portion      = train_portion
         self.validation_portion = validation_portion
         self.test_portion       = test_portion
+        self.num_use_data   = num_use_data
+        self.num_epochs_use = num_epochs_use
+        self.fact           = fact
+        self.dst_min        = dst_min
+        self.re_max     = re_max
+        self.re_min     = re_min
+        self.im_max     = im_max
+        self.im_min     = im_min
+        self.coeff_re_max = coeff_re_max
+        self.coeff_re_min = coeff_re_min
+        self.coeff_im_max = coeff_im_max
+        self.coeff_im_min = coeff_im_min
 
     def setup(self, stage):
-        all_data = PoleDataSet_Regressor(pole_class=self.pole_class, data_x=self.data_x, data_dir=self.data_dir)
+        all_data = PoleDataSet_Regressor(pole_class=self.pole_class, grid_x=self.grid_x, data_dir=self.data_dir, 
+                                         num_use_data=self.num_use_data, num_epochs_use = self.num_epochs_use,
+                                         fact=self.fact, dst_min=self.dst_min,
+                                         re_max=self.re_max, re_min=self.re_min, im_max=self.im_max, im_min=self.im_min, 
+                                         coeff_re_max=self.coeff_re_max, coeff_re_min=self.coeff_re_min, 
+                                         coeff_im_max=self.coeff_im_max, coeff_im_min=self.coeff_im_min)
         
         num_data = len(all_data)
         print("Length of all_data: ", num_data)
@@ -132,9 +240,9 @@ def myL1(y_hat, y, std_path):
     return F.l1_loss(y_hat, y)
 
 def myL1_norm(y_hat, y, pole_class, std_path,
-              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
-              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
-              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min):
+              re_max, re_min, im_max, im_min, 
+              coeff_re_max, coeff_re_min, 
+              coeff_im_max, coeff_im_min):
     '''
     Removes standardization from y and y_hat, normalizes their elements to [0,1] and returns the L1 error
     
@@ -147,8 +255,8 @@ def myL1_norm(y_hat, y, pole_class, std_path,
     std_path: str
         Path to the folder, where variances and means files shall be stored
         
-    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric, defaults read from parameters file
-        Define a box. Parameter configurations outside this box are dropped
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
+        Define a box
         
     return: scalar torch.Tensor
         The L1 loss/error
@@ -217,8 +325,34 @@ class Pole_Regressor(LightningModule):
     """
     Basic lightning model to use a vector of inputs in order to predict
     the parameters of a complex structure in the vector
+    
+    pole_class: int
+        The class that shall be trained
+        
+    std_path: str
+        Folder containing the standardization info of the data (needed for special loss)
+    
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: floats
+        The parameter boundaries
+    
+    weight_decay, learning_rate: floats
+    
+    architecture, optimizer: strings
+    
+    additional kwargs are handed to the architecture class
     """
     def __init__(self, 
+                 # The pole class
+                 pole_class: int,
+                 
+                 # Path to the folder, where variances and means files shall be stored
+                 std_path: str,
+                 
+                 # Parameter boundaries
+                 re_max, re_min, im_max, im_min, 
+                 coeff_re_max, coeff_re_min, 
+                 coeff_im_max, coeff_im_min,
+                 
                  # Regularization
                  weight_decay:  float = 0.0,
                  
@@ -227,6 +361,9 @@ class Pole_Regressor(LightningModule):
                  
                  # ANN Architecture
                  architecture: str = 'FC6', 
+                 
+                 # Optimizer
+                 optimizer: str = 'Adam',
                  
                  #Additional arguments needed for initialization of the ANN Architecture
                  **kwargs
@@ -256,10 +393,14 @@ class Pole_Regressor(LightningModule):
         val_loss = F.l1_loss(y_hat, y)
         self.log('val_loss', val_loss, on_step=False, on_epoch=True)
         
-        val_norm_l1_loss = myL1_norm(y_hat, y, pole_class=class_regressor, std_path=data_dir_regressor)
+        val_norm_l1_loss = myL1_norm(y_hat, y, pole_class=self.hparams.pole_class, std_path=self.hparams.std_path,
+                                     re_max=self.hparams.re_max, re_min=self.hparams.re_min, 
+                                     im_max=self.hparams.im_max, im_min=self.hparams.im_min, 
+                                     coeff_re_max=self.hparams.coeff_re_max, coeff_re_min=self.hparams.coeff_re_min, 
+                                     coeff_im_max=self.hparams.coeff_im_max, coeff_im_min=self.hparams.coeff_im_min)
         self.log('val_norm_l1_loss', val_norm_l1_loss, on_step=False, on_epoch=True)
         
-        val_l1_loss = myL1(y_hat, y, std_path=data_dir_regressor)
+        val_l1_loss = myL1(y_hat, y, std_path=self.hparams.std_path)
         self.log('val_l1_loss', val_l1_loss, on_step=False, on_epoch=True)
         
         return val_loss
@@ -274,7 +415,18 @@ class Pole_Regressor(LightningModule):
         return test_loss
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
+        if self.hparams.optimizer == 'Adam':
+            optimizer = optim.Adam(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
+        elif self.hparams.optimizer == 'AdamW':
+            optimizer = optim.AdamW(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
+        elif self.hparams.optimizer == 'Adagrad':
+            optimizer = optim.Adagrad(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
+        elif self.hparams.optimizer == 'Adadelta':
+            optimizer = optim.Adadelta(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
+        elif self.hparams.optimizer == 'RMSprop':
+            optimizer = optim.RMSprop(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
+        elif self.hparams.optimizer == 'SGD':
+            optimizer = optim.SGD(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
         return {"optimizer": optimizer}
 
 

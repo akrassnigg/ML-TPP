@@ -11,8 +11,9 @@ Combine two classifier datasets into one
 import numpy as np
 import os
 
-from parameters import data_dir_classifier
 from lib.standardization_functions import rm_std_data, std_data_new
+
+from parameters import data_dir_classifier
 
 
 def combine_classifier_datasets(with_mean=True, data_dir=data_dir_classifier):

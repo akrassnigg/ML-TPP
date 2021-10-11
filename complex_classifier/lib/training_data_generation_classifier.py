@@ -18,10 +18,6 @@ from lib.scipy_fit_functions import get_all_scipy_preds_dataprep
 from lib.curve_calc_functions import pole_curve_calc, pole_curve_calc2
 from lib.diverse_functions import mse, drop_not_finite_rows
 from lib.standardization_functions import rm_std_data, std_data_new
-from parameters import fact_classifier, dst_min_classifier
-from parameters import standard_re
-from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
-from parameters import xtol_classifier
 
 
 def drop_small_poles(pole_class, pole_params, point_x, fact):
@@ -211,9 +207,9 @@ def drop_near_poles(pole_class, pole_params, dst_min):
 
 
 def drop_outside_box(pole_class, pole_params,
-                    re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
-                    coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
-                    coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min):
+                    re_max, re_min, im_max, im_min, 
+                    coeff_re_max, coeff_re_min, 
+                    coeff_im_max, coeff_im_min):
     '''
     Drops parameter configurations, whose parameters are outside the box specified by re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
     
@@ -223,7 +219,7 @@ def drop_outside_box(pole_class, pole_params,
     pole_params: ndarray of shape (m,k), where m is the number of samples
         Parameters specifying the Pole Configuration
         
-    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric, defaults read from parameters file
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
         Define a box. Parameter configurations outside this box are dropped
         
     returns: ndarray of shape (m,)
@@ -312,10 +308,11 @@ def drop_outside_box(pole_class, pole_params,
     return keep_indices
 
 
-def drop_classifier_samples_afterwards(with_mean, data_dir, grid_x=standard_re, fact=fact_classifier, dst_min=dst_min_classifier,
-                                       re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
-                                       coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
-                                       coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min):
+def drop_classifier_samples_afterwards(with_mean, data_dir, grid_x,
+                                       re_max, re_min, im_max, im_min, 
+                                       coeff_re_max, coeff_re_min, 
+                                       coeff_im_max, coeff_im_min,
+                                       fact=np.inf, dst_min=0.0):
     '''
     Drop unwanted samples by applying drop_small_poles_2, drop_near_poles and drop_outside_box to already
     existing classifier samples, which were previously created using create_training_data_classifier and write the remaining
@@ -330,18 +327,18 @@ def drop_classifier_samples_afterwards(with_mean, data_dir, grid_x=standard_re, 
         Must contain files various_poles_data_classifier_x.npy, various_poles_data_classifier_y.npy, 
         various_poles_data_classifier_params.npy, variances.npy and, if with_mean=True, means.npy.
         
-    grid_x: numpy.ndarray of shape (n,) or (1,n), default read from parameters file
+    grid_x: numpy.ndarray of shape (n,) or (1,n)
         Gridpoints, where the function/pole configuration shall be evaluated
         
-    fact: numeric>=1, default read from parameters file
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
+        Define a box. Parameter configurations outside this box are dropped in drop_outside_box
+        
+    fact: numeric>=1, default np.inf
         The factor to compare out_re_i from the different poles per sample in drop_small_poles_2
         
-    dst_min: numeric>=0, default read from parameters file
+    dst_min: numeric>=0, default 0.0
         The minimal allowed distance between (complex) pole positions in drop_near_poles
         
-    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric, defaults read from parameters file
-        Define a box. Parameter configurations outside this box are dropped in drop_outside_box
-    
     returns: None     
     '''
     # Make a backup of the data
@@ -405,16 +402,23 @@ def drop_classifier_samples_afterwards(with_mean, data_dir, grid_x=standard_re, 
     
     return None
 
-def get_data_x(out_re, grid_x, with_bounds=True,
-               p0='default', method='trf', maxfev=100000, num_tries=1, xtol = xtol_classifier):
+def get_data_x(data_y, grid_x, 
+               re_max, re_min, im_max, im_min, 
+               coeff_re_max, coeff_re_min, 
+               coeff_im_max, coeff_im_min,
+               with_bounds=True,
+               p0='default', method='trf', maxfev=100000, num_tries=1, xtol = 1e-8):
     '''
     Generates the unstandardized network input from the pole curves (out_re)
     
-    out_re: numpy.ndarray of shape (n,) or (m,n), where m is the number of samples
+    data_y: numpy.ndarray of shape (n,) or (m,n), where m is the number of samples
         Function values at the gridpoints
         
     grid_x: numpy.ndarray of shape (n,) or (1,n)
         Gridpoints, where the function/pole configuration shall be evaluated
+        
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
+        Define a box. Parameter configurations are searched in this box if with_bounds=True
         
     with_bounds: bool, default=True
         Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
@@ -435,18 +439,22 @@ def get_data_x(out_re, grid_x, with_bounds=True,
     num_tries: int > 0, default=1
         The number of times the fit shall be tried (with varying initial guesses)
         
-    xtol: float or list of floats, default read from parameters file
+    xtol: float or list of floats, default 1e-8
         Convergence criterion (see SciPy's curve_fit)    
     
     returns: numpy.ndarray of shape (m,9+60+len(grid_x))
         data_x (network input), not yet normalized
     '''
-    out_re = np.atleast_2d(out_re)
+    data_y = np.atleast_2d(data_y)
     
     # Get Scipy predictions for each sample
     print('Getting SciPy predictions...')
     params_1r, params_1c, params_2r, params_1r1c, params_2c, \
-    params_3r, params_2r1c, params_1r2c, params_3c = get_all_scipy_preds_dataprep(grid_x, out_re, with_bounds=with_bounds, p0=p0,
+    params_3r, params_2r1c, params_1r2c, params_3c = get_all_scipy_preds_dataprep(grid_x=grid_x, data_y=data_y, 
+                                                                                  re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                                                                                  coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                                                                                  coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
+                                                                                  with_bounds=with_bounds, p0=p0,
                                                                                   method=method, maxfev=maxfev, num_tries=num_tries, 
                                                                                   xtol=xtol)
 
@@ -462,15 +470,15 @@ def get_data_x(out_re, grid_x, with_bounds=True,
     out_re_3c   = pole_curve_calc2(pole_class=8, pole_params=params_3c,   grid_x=grid_x)
     
     # Calculate the different MSEs
-    mse_1r   = mse(out_re, out_re_1r,   ax=1).reshape(-1,1)
-    mse_1c   = mse(out_re, out_re_1c,   ax=1).reshape(-1,1)
-    mse_2r   = mse(out_re, out_re_2r,   ax=1).reshape(-1,1)
-    mse_1r1c = mse(out_re, out_re_1r1c, ax=1).reshape(-1,1)
-    mse_2c   = mse(out_re, out_re_2c,   ax=1).reshape(-1,1)
-    mse_3r   = mse(out_re, out_re_3r,   ax=1).reshape(-1,1)
-    mse_2r1c = mse(out_re, out_re_2r1c, ax=1).reshape(-1,1)
-    mse_1r2c = mse(out_re, out_re_1r2c, ax=1).reshape(-1,1)
-    mse_3c   = mse(out_re, out_re_3c,   ax=1).reshape(-1,1)
+    mse_1r   = mse(data_y, out_re_1r,   ax=1).reshape(-1,1)
+    mse_1c   = mse(data_y, out_re_1c,   ax=1).reshape(-1,1)
+    mse_2r   = mse(data_y, out_re_2r,   ax=1).reshape(-1,1)
+    mse_1r1c = mse(data_y, out_re_1r1c, ax=1).reshape(-1,1)
+    mse_2c   = mse(data_y, out_re_2c,   ax=1).reshape(-1,1)
+    mse_3r   = mse(data_y, out_re_3r,   ax=1).reshape(-1,1)
+    mse_2r1c = mse(data_y, out_re_2r1c, ax=1).reshape(-1,1)
+    mse_1r2c = mse(data_y, out_re_1r2c, ax=1).reshape(-1,1)
+    mse_3c   = mse(data_y, out_re_3c,   ax=1).reshape(-1,1)
     
     # Apply log10 to the MSEs to bring them to a similiar scale
     mse_1r   = np.log10(mse_1r)
@@ -484,11 +492,16 @@ def get_data_x(out_re, grid_x, with_bounds=True,
     mse_3c   = np.log10(mse_3c)
     
     # Everything together then gives data_x that is used to train the classifier
-    data_x = np.hstack((mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c, out_re))
+    data_x = np.hstack((mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c, data_y))
     
     return data_x
 
-def create_training_data_classifier(length, grid_x, with_bounds, data_dir):
+def create_training_data_classifier(length, grid_x, 
+                                    re_max, re_min, im_max, im_min, 
+                                    coeff_re_max, coeff_re_min, 
+                                    coeff_im_max, coeff_im_min,
+                                    with_bounds, data_dir, fact, dst_min, 
+                                    p0, method, maxfev, num_tries, xtol):
     '''
     Creates training data for the NN classifier and saves it to the disk
     
@@ -498,12 +511,40 @@ def create_training_data_classifier(length, grid_x, with_bounds, data_dir):
     grid_x: numpy.ndarray of shape (n,) or (1,n)
         Gridpoints, where the function/pole configuration shall be evaluated
         
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
+        Define a box. Parameter configurations are searched in this box if with_bounds=True
+        
     with_bounds: bool, default=False
         Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
         
     data_dir: str
         Path to the folder, where data and standardization files shall be stored
         
+    fact: numeric>=1
+        Drops parameter configureations, that contain poles, whose out_re is a factor fact smaller, than out_re of the other poles in the sample
+        
+    dst_min: numeric>=0
+        Drops parameter configureations, that contain poles, whose positions are nearer to each other than dst_min (complex, euclidean norm)
+       
+    p0: 'default' or 'random', default='default'
+        Initial guesses for parameter search. 
+        
+        If 'default', the SciPy curve_fit default behaviour is used 
+        
+        If 'random', random guesses are used (use this if num_tries>1)
+        
+    method: str = 'trf', 'dogbox' or 'lm', default='trf'
+        The optimization method
+        
+    maxfev: int > 0 , default=100000
+        Maximal number of function evaluations (see SciPy's curve_fit)
+        
+    num_tries: int > 0, default=1
+        The number of times the fit shall be tried (with varying initial guesses) 
+       
+    xtol: float or list of floats
+        Convergence criterion (see SciPy's curve_fit)                         
+    
     returns: None
     '''
     # List of the pole classes
@@ -521,9 +562,12 @@ def create_training_data_classifier(length, grid_x, with_bounds, data_dir):
     labels_and_params = []
     for pole_class in pole_classes:
         # Get pole configurations of the current pole class and append them to out_re and labels
-        params = get_train_params(pole_class=pole_class, m=nums[pole_class])
-        params = params[drop_small_poles_2(pole_class=pole_class, pole_params=params, grid_x=grid_x, fact=fact_classifier)]
-        params = params[drop_near_poles(pole_class=pole_class, pole_params=params, dst_min=dst_min_classifier)]
+        params = get_train_params(pole_class=pole_class, m=nums[pole_class],
+                                  re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                                  coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                                  coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
+        params = params[drop_small_poles_2(pole_class=pole_class, pole_params=params, grid_x=grid_x, fact=fact)]
+        params = params[drop_near_poles(pole_class=pole_class, pole_params=params, dst_min=dst_min)]
         out_re.append(pole_curve_calc(pole_class=pole_class, pole_params=params, grid_x=grid_x))
         
         # also add the exact parameters to the label, because we may use them later (e.g. for selecting certain samples)
@@ -540,7 +584,12 @@ def create_training_data_classifier(length, grid_x, with_bounds, data_dir):
     print('Maximum number of samples to be created: ', len(labels_and_params))
 
     # Get data_x
-    data_x = get_data_x(out_re=out_re, grid_x=grid_x, with_bounds=with_bounds)  
+    data_x = get_data_x(data_y=out_re, grid_x=grid_x, 
+                        re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                        coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                        coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
+                        with_bounds=with_bounds, 
+                        p0=p0, method=method, maxfev=maxfev, num_tries=num_tries, xtol=xtol)  
     
     ## Get rid of possible infinities that can occurr after log10 for very small MSE below machine accuracy and if the sample couldn't be fitted
     data_x, labels_and_params = drop_not_finite_rows(

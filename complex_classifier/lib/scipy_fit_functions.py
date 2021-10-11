@@ -9,12 +9,8 @@ Functions, that use SciPy's curve_fit to get pole parameters
 """
 import numpy as np
 from scipy.optimize import curve_fit
-import time
 from joblib import Parallel, delayed
-import multiprocessing
 
-from parameters import coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max
-from parameters import xtol_classifier
 from lib.pole_objective_functions import objective_1r, objective_1c
 from lib.pole_objective_functions import objective_2r, objective_1r1c, objective_2c
 from lib.pole_objective_functions import objective_3r, objective_2r1c, objective_1r2c, objective_3c
@@ -138,11 +134,13 @@ def pole_config_organize(pole_class, pole_params):
     pole_params = pole_params.transpose()
     return pole_params
 
-def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=True, p0='default',
-                   method='trf', maxfev=100000, num_tries=1, xtol = xtol_classifier,
-                   re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
-                   coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
-                   coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min):
+def get_scipy_pred(pole_class, grid_x, data_y, 
+                   re_max, re_min, im_max, im_min, 
+                   coeff_re_max, coeff_re_min, 
+                   coeff_im_max, coeff_im_min,
+                   with_bounds=True, p0='default',
+                   method='trf', maxfev=100000, num_tries=1, xtol = 1e-8
+                   ):
     '''
     Uses Scipy curve_fit to fit different pole classes onto single (!) data sample
     
@@ -151,6 +149,9 @@ def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=True, p0='default',
     
     grid_x, data_y: numpy.ndarray of shape (n,) or (1,n)
         Points to be used for fitting
+    
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
+        Define a box. Parameter configurations are searched in this box if with_bounds=True
     
     with_bounds: bool, default=True
         Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
@@ -171,11 +172,8 @@ def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=True, p0='default',
     num_tries: int > 0, default=1
         The number of times the fit shall be tried (with varying initial guesses)
         
-    xtol: float or list of floats, default read from parameters file
+    xtol: float or list of floats, default 1e-8
         Convergence criterion (see SciPy's curve_fit)
-        
-    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric, defaults read from parameters file
-        Define a box. Parameter configurations are searched in this box if with_bounds=True
     
     returns: numpy.ndarray of shape (k,)
         Optimized parameters of the chosen pole class or nans if the fit failed
@@ -195,7 +193,9 @@ def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=True, p0='default',
         xtol0, xtol1, xtol2, xtol3, xtol4, xtol5, xtol6, xtol7, xtol8 = [xtol for i in range(9)]
              
     def get_p0(p0):
-        if p0 == 'random':
+        if type(p0) == np.ndarray:
+            p0_new = p0    
+        elif p0 == 'random':
             p0_new = np.random.uniform(np.array(upper), np.array(lower))
         elif p0 == 'default':
             p0_new = None
@@ -316,13 +316,20 @@ def get_scipy_pred(pole_class, grid_x, data_y, with_bounds=True, p0='default',
     return params_tmp
 
 
-def get_all_scipy_preds(grid_x, data_y, with_bounds=True,
-                        p0='default', method='trf', maxfev=100000, num_tries=1, xtol = xtol_classifier):
+def get_all_scipy_preds(grid_x, data_y, 
+                        re_max, re_min, im_max, im_min, 
+                        coeff_re_max, coeff_re_min, 
+                        coeff_im_max, coeff_im_min,
+                        with_bounds=True,
+                        p0='default', method='trf', maxfev=100000, num_tries=1, xtol = 1e-8):
     '''
     Uses Scipy curve_fit to fit all 9 different pole classes onto a single data sample
     
     grid_x, data_y: numpy.ndarray of shape (n,) or (1,n)
         Points to be used for fitting
+        
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
+        Define a box. Parameter configurations are searched in this box if with_bounds=True
     
     with_bounds: bool, default=True
         Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
@@ -343,7 +350,7 @@ def get_all_scipy_preds(grid_x, data_y, with_bounds=True,
     num_tries: int > 0, default=1
         The number of times the fit shall be tried (with varying initial guesses)
         
-    xtol: float or list of floats, default read from parameters file
+    xtol: float or list of floats, default 1e-8
         Convergence criterion (see SciPy's curve_fit)
     
     returns: list of 9 numpy.ndarrays of shapes (k_i,), i=0...8
@@ -351,8 +358,12 @@ def get_all_scipy_preds(grid_x, data_y, with_bounds=True,
     '''
     params = []
     for i in range(9):
-        params_tmp = get_scipy_pred(pole_class=i, grid_x=grid_x, data_y=data_y, with_bounds=with_bounds, p0=p0,
-                                     method=method, maxfev=maxfev, num_tries=num_tries, xtol=xtol)
+        params_tmp = get_scipy_pred(pole_class=i, grid_x=grid_x, data_y=data_y, 
+                                    re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                                    coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                                    coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
+                                    with_bounds=with_bounds, p0=p0,
+                                    method=method, maxfev=maxfev, num_tries=num_tries, xtol=xtol)
         params.append(params_tmp)
         if np.isnan(params_tmp[0]): # if one fit fails, the sample will be dropped, so break to not waste time
             params = [np.array([np.nan for i in range(j)]) for j in [2,4,4,6,8,6,8,10,12]]
@@ -360,8 +371,12 @@ def get_all_scipy_preds(grid_x, data_y, with_bounds=True,
     return params
 
 
-def get_all_scipy_preds_dataprep(grid_x, data_y, with_bounds=True,
-                                 p0='default', method='trf', maxfev=100000, num_tries=1, xtol = xtol_classifier):
+def get_all_scipy_preds_dataprep(grid_x, data_y, 
+                                 re_max, re_min, im_max, im_min, 
+                                 coeff_re_max, coeff_re_min, 
+                                 coeff_im_max, coeff_im_min,
+                                 with_bounds=True,
+                                 p0='default', method='trf', maxfev=100000, num_tries=1, xtol = 1e-8):
     '''
     Uses Scipy curve_fit to fit all 9 different pole classes onto multiple data samples for creating data to train a NN. 
     
@@ -370,6 +385,9 @@ def get_all_scipy_preds_dataprep(grid_x, data_y, with_bounds=True,
         
     data_y: numpy.ndarray of shape (n,) or (m,n), where m is the number of samples
         Function values to be fitted
+        
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
+        Define a box. Parameter configurations are searched in this box if with_bounds=True
 
     with_bounds: bool, default=True
         Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
@@ -390,7 +408,7 @@ def get_all_scipy_preds_dataprep(grid_x, data_y, with_bounds=True,
     num_tries: int > 0, default=1
         The number of times the fit shall be tried (with varying initial guesses)
         
-    xtol: float or list of floats, default read from parameters file
+    xtol: float or list of floats, default 1e-8
         Convergence criterion (see SciPy's curve_fit)
     
     returns: 9 numpy.ndarrays of shapes (m,k_i) for i=0...8, where m is the number of samples
@@ -400,7 +418,11 @@ def get_all_scipy_preds_dataprep(grid_x, data_y, with_bounds=True,
     data_y = np.atleast_2d(data_y)
 
     def get_all_scipy_preds_tmp(data_y_fun):
-        return get_all_scipy_preds(grid_x=grid_x, data_y=data_y_fun, with_bounds=with_bounds, p0=p0,
+        return get_all_scipy_preds(grid_x=grid_x, data_y=data_y_fun, 
+                                   re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                                   coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                                   coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
+                                   with_bounds=with_bounds, p0=p0,
                                    method=method, maxfev=maxfev, num_tries=num_tries, xtol=xtol)
     
     params_tmp = Parallel(n_jobs=-1, backend="loky", verbose=10)(

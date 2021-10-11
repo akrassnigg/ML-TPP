@@ -10,13 +10,11 @@ Functions, that generate pole configurations
 import numpy as np
 import sys
 
-from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
-
 
 def get_params(m, typ: str,
-               re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
-               coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
-               coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min):
+               re_max, re_min, im_max, im_min, 
+               coeff_re_max, coeff_re_min, 
+               coeff_im_max, coeff_im_min):
     '''
     Generates parameters of real or cc pole pairs. 
     
@@ -29,7 +27,7 @@ def get_params(m, typ: str,
     typ: str: 'r' or 'c'
         Shall the generated poles be real or cc pairs?
         
-    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric, defaults read from parameters file
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
         Define a box. Parameter configurations outside this box are dropped
         
     returns: numpy.ndarray of shape (m, 4)
@@ -71,7 +69,10 @@ def get_params(m, typ: str,
     return (np.array([part_re, part_im, coeff_re, coeff_im])).transpose()
 
 
-def get_train_params(pole_class:int, m:int):
+def get_train_params(pole_class:int, m:int,
+                     re_max, re_min, im_max, im_min, 
+                     coeff_re_max, coeff_re_min, 
+                     coeff_im_max, coeff_im_min):
     '''
     For a given pole class, return m parameter configurations
     
@@ -81,55 +82,118 @@ def get_train_params(pole_class:int, m:int):
     m: int
         The number of configurations to be generated
         
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
+        Define a box. Parameter configurations outside this box are dropped
+        
     returns: numpy.ndarray of shape (m,k), where k is determined by the pole Class and m is the number of samples
         The generated configurations
     '''
     if pole_class == 0:
         # a single pole on the real axis
-        params_1 = get_params(m, 'r')
+        params_1 = get_params(m, 'r',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
         params  = params_1
     elif pole_class == 1:
         # a complex conjugated pole pair
-        params_1 = get_params(m, 'c')
+        params_1 = get_params(m, 'c',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
         params  = params_1
     elif pole_class == 2:
         # two real poles
-        params_1 = get_params(m, 'r') 
-        params_2 = get_params(m, 'r')
+        params_1 = get_params(m, 'r',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min) 
+        params_2 = get_params(m, 'r',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
         params  = np.hstack([params_1, params_2])
     elif pole_class == 3:
         # a real pole and a cc pole pair
-        params_1 = get_params(m, 'r') 
-        params_2 = get_params(m, 'c')
+        params_1 = get_params(m, 'r',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min) 
+        params_2 = get_params(m, 'c',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
         params  = np.hstack([params_1, params_2])
     elif pole_class == 4:
         # two cc pole pairs
-        params_1 = get_params(m, 'c')  
-        params_2 = get_params(m, 'c')
+        params_1 = get_params(m, 'c',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)  
+        params_2 = get_params(m, 'c',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)  
         params  = np.hstack([params_1, params_2])
     elif pole_class == 5:
         # three real poles
-        params_1 = get_params(m, 'r')
-        params_2 = get_params(m, 'r')
-        params_3 = get_params(m, 'r')
+        params_1 = get_params(m, 'r',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
+        params_2 = get_params(m, 'r',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
+        params_3 = get_params(m, 'r',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
         params  = np.hstack([params_1, params_2, params_3])
     elif pole_class == 6:
         # two real poles and one cc pole pair
-        params_1 = get_params(m, 'r')
-        params_2 = get_params(m, 'r')
-        params_3 = get_params(m, 'c')
+        params_1 = get_params(m, 'r',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
+        params_2 = get_params(m, 'r',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
+        params_3 = get_params(m, 'c',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
         params  = np.hstack([params_1, params_2, params_3])
     elif pole_class == 7:
         # one real pole and two cc pole pairs
-        params_1 = get_params(m, 'r')
-        params_2 = get_params(m, 'c')
-        params_3 = get_params(m, 'c')
+        params_1 = get_params(m, 'r',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
+        params_2 = get_params(m, 'c',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
+        params_3 = get_params(m, 'c',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
         params  = np.hstack([params_1, params_2, params_3])
     elif pole_class == 8:
         # three cc pole pairs
-        params_1 = get_params(m, 'c')
-        params_2 = get_params(m, 'c')
-        params_3 = get_params(m, 'c')
+        params_1 = get_params(m, 'c',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
+        params_2 = get_params(m, 'c',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
+        params_3 = get_params(m, 'c',
+                              re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                              coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                              coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
         params  = np.hstack([params_1, params_2, params_3])
     else:
         # should not happen

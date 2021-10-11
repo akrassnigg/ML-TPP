@@ -13,14 +13,16 @@ import torch
 import scipy
 
 from lib.standardization_functions import std_data
-from lib.architectures import FC1
 from lib.pole_classifier import Pole_Classifier
 from lib.training_data_generation_classifier import get_data_x
-from parameters import xtol_classifier
 
-def get_classifier_preds(grid_x, data_y, do_std, model_path, 
+def get_classifier_preds(grid_x, data_y, 
+                         re_max, re_min, im_max, im_min, 
+                         coeff_re_max, coeff_re_min, 
+                         coeff_im_max, coeff_im_min,
+                         do_std, model_path, 
                          with_bounds=True, p0='default', method='trf', 
-                         maxfev=100000, num_tries=1, xtol = xtol_classifier):
+                         maxfev=100000, num_tries=1, xtol = 1e-8):
     '''
     Get predictions from trained Pole Classifier(s) 
     
@@ -29,6 +31,9 @@ def get_classifier_preds(grid_x, data_y, do_std, model_path,
     
     data_y: ndarray of shape (n,) or (1,n), where n is the number of gridpoints
         Function Values
+    
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
+        Define a box. Parameter configurations are searched in this box if with_bounds=True
     
     do_std: bool
         Shall the data be standardized to the standardization, that was used to train the Classifier?
@@ -58,7 +63,7 @@ def get_classifier_preds(grid_x, data_y, do_std, model_path,
     num_tries: int > 0, default=1
         The number of times the fit shall be tried (with varying initial guesses)
         
-    xtol: float or list of floats, default read from parameters file
+    xtol: float or list of floats, default 1e-8
         Convergence criterion (see SciPy's curve_fit)    
     
     returns: int, int, ndarray of shape (l,), where l is the number of checkpoints in the "models" subdirectory
@@ -66,7 +71,11 @@ def get_classifier_preds(grid_x, data_y, do_std, model_path,
     '''
     # Data Preparation
     # Get data_x
-    data_x = get_data_x(out_re=data_y, grid_x=grid_x, with_bounds=with_bounds, p0=p0,
+    data_x = get_data_x(data_y=data_y, grid_x=grid_x, 
+                        re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                        coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                        coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
+                        with_bounds=with_bounds, p0=p0,
                         method=method, maxfev=maxfev, num_tries=num_tries, xtol=xtol) 
     # Apply standardization
     if do_std:

@@ -16,6 +16,9 @@ import torch
 import wandb
 import argparse
 
+from lib.pole_classifier import Pole_Classifier, PoleDataModule_Classifier
+from lib.plotting_routines import classifier_plot
+
 from parameters import train_portion_classifier, val_portion_classifier, test_portion_classifier
 from parameters import architecture_classifier
 from parameters import hidden_dim_1_classifier, hidden_dim_2_classifier, hidden_dim_3_classifier
@@ -26,13 +29,12 @@ from parameters import data_dir_classifier, log_dir_classifier, models_dir_class
 from parameters import num_use_data_classifier, n_examples_classifier
 from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
 from parameters import fact_classifier, dst_min_classifier
-from parameters import xtol
+from parameters import xtol_classifier
 from parameters import num_runs_classifier
 from parameters import optimizer_classifier
 from parameters import drop_prob_1_classifier, drop_prob_2_classifier, drop_prob_3_classifier
 from parameters import drop_prob_4_classifier, drop_prob_5_classifier, drop_prob_6_classifier
-from lib.pole_classifier import Pole_Classifier, PoleDataModule_Classifier
-from lib.plotting_routines import classifier_plot
+from parameters import val_check_interval_classifier, es_patience_classifier
 
 ##############################################################################
 ##########################   Execution   #####################################
@@ -106,16 +108,19 @@ if __name__ == '__main__':
                 coeff_im_max = coeff_im_max, 
                 coeff_im_min = coeff_im_min,
 
-                fact_classifier = fact_classifier,
+                fact_classifier    = fact_classifier,
                 dst_min_classifier = dst_min_classifier,
-                xtol = xtol,
+                xtol               = xtol_classifier,
                 
-                n_examples_classifier = n_examples_classifier,
-                num_use_data_classifier = num_use_data_classifier,
+                n_examples_classifier    = n_examples_classifier,
+                num_use_data_classifier  = num_use_data_classifier,
                 train_portion_classifier = train_portion_classifier,
-                val_portion_classifier = val_portion_classifier,
-                test_portion_classifier = test_portion_classifier, 
-                batch_size = batch_size_classifier
+                val_portion_classifier   = val_portion_classifier,
+                test_portion_classifier  = test_portion_classifier, 
+                batch_size               = batch_size_classifier,
+                
+                val_check_interval = val_check_interval_classifier,
+                es_patience        = es_patience_classifier
 		)
     
     hyperparameters = {**net_hyperparameters, **other_hyperparameters}
@@ -136,7 +141,8 @@ if __name__ == '__main__':
                     )
                     
         datamodule = PoleDataModule_Classifier(data_dir=data_dir_classifier, batch_size=batch_size_classifier, 
-                                    train_portion=train_portion_classifier, validation_portion=val_portion_classifier, test_portion=test_portion_classifier, num_use_data=num_use_data_classifier)
+                                    train_portion=train_portion_classifier, validation_portion=val_portion_classifier, test_portion=test_portion_classifier, 
+                                    num_use_data=num_use_data_classifier)
         
         checkpoint_callback1 = pl.callbacks.ModelCheckpoint(
             dirpath = models_dir_classifier,
@@ -154,11 +160,11 @@ if __name__ == '__main__':
             save_last= True
         )
         
-        early_stop_callback = EarlyStopping(monitor="val_acc", min_delta=0.00, patience=20, mode="max")
+        early_stop_callback = EarlyStopping(monitor="val_acc", min_delta=0.00, patience=es_patience_classifier, mode="max")
         
         trainer = pl.Trainer(
             logger=logger,
-            val_check_interval=0.1,
+            val_check_interval=val_check_interval_classifier,
             callbacks=[checkpoint_callback1, early_stop_callback], #, checkpoint_callback2
             max_epochs=epochs_classifier,
             gpus=1

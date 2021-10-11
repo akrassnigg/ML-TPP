@@ -20,7 +20,6 @@ from pytorch_lightning.metrics.functional import accuracy
 from torch.utils.data import WeightedRandomSampler
 
 from lib.architectures import FC1, FC2, FC3, FC4, FC5, FC6
-from parameters import out_features_classifier
 
 
 ##############################################################################
@@ -28,6 +27,17 @@ from parameters import out_features_classifier
 ##############################################################################
 
 class PoleDataSet_Classifier(Dataset):
+    """
+    DataSet of the Pole Classifier
+    
+    data_dir: str
+        Directory containing data files
+
+    num_use_data: int
+        How many of the available datapoints shall be used
+    """
+    
+    
     def __init__(self, data_dir, num_use_data):
         self.data_X = np.load(os.path.join(data_dir, "various_poles_data_classifier_x.npy"), allow_pickle=True).astype('float32')[:,0:69]
         self.data_Y = np.load(os.path.join(data_dir, "various_poles_data_classifier_y.npy"), allow_pickle=True).astype('int64').reshape((-1,1)) 
@@ -40,7 +50,7 @@ class PoleDataSet_Classifier(Dataset):
         elif isinstance(num_use_data, list):
             new_data_X = []
             new_data_Y = []
-            for label in range(out_features_classifier):
+            for label in range(np.max(self.data_Y)):
                 #seed_afterward = np.random.randint(low=0, high=1e3)
                 #np.random.seed(1234)
                 data_x_i = ( self.data_X[self.data_Y.reshape(-1)==label] ).copy()
@@ -73,6 +83,21 @@ class PoleDataSet_Classifier(Dataset):
 
 
 class PoleDataModule_Classifier(pl.LightningDataModule):
+    """
+    DataModule of the Pole Classifier
+    
+    data_dir: str
+        Directory containing data files
+    
+    batch_size: int
+    
+    train_portion, validation_portion, test_portion: float 
+    
+    num_use_data: int
+        How many of the available datapoints shall be used
+    """
+    
+    
     def __init__(self, data_dir: str, batch_size: int, train_portion: float, validation_portion: float, test_portion: float, num_use_data):
         super().__init__()
         self.data_dir = data_dir
@@ -191,6 +216,12 @@ class Pole_Classifier(LightningModule):
     """
     Basic lightning model to use a vector of inputs in order to predict
     the class of a complex structure in the vector
+    
+    weight_decay, learning_rate: floats
+    
+    architecture, optimizer: strings
+    
+    additional kwargs are handed to the architecture class
     """
     def __init__(self, 
                  # Regularization
