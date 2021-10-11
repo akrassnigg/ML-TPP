@@ -28,7 +28,7 @@ if __name__ == '__main__':
     # Step 0: Get Data 
     from test_data import my_p2, my_sigma_S, my_sigma_V
     grid_x = my_p2
-    data_y = my_sigma_S
+    data_y = my_sigma_V
 
     # Do Scipy fit
     print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')

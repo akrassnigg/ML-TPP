@@ -16,7 +16,7 @@ from parameters import n_examples_classifier, standard_re, data_dir_classifier
 from parameters import fact_classifier, dst_min_classifier
 from parameters import xtol_classifier
 from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
-from parameters import p0_classifier, method_classifier, maxfev_classifier, num_tries_clasifier
+from parameters import p0_classifier, method_classifier, maxfev_classifier, num_tries_classifier
 
 if __name__ == '__main__':
     time1 = time.time()
@@ -27,7 +27,7 @@ if __name__ == '__main__':
                                     with_bounds=True, data_dir=data_dir_classifier,
                                     fact=fact_classifier, dst_min=dst_min_classifier, 
                                     p0=p0_classifier, method=method_classifier, 
-                                    maxfev=maxfev_classifier, num_tries=num_tries_clasifier, 
+                                    maxfev=maxfev_classifier, num_tries=num_tries_classifier, 
                                     xtol=xtol_classifier)
     print(time.time() - time1)
 
