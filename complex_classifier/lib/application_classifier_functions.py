@@ -21,8 +21,8 @@ def get_classifier_preds(grid_x, data_y,
                          coeff_re_max, coeff_re_min, 
                          coeff_im_max, coeff_im_min,
                          do_std, model_path, 
-                         with_bounds=True, p0='default', method='trf', 
-                         maxfev=100000, num_tries=1, xtol = 1e-8):
+                         with_bounds, p0, method, 
+                         maxfev, num_tries, xtol):
     '''
     Get predictions from trained Pole Classifier(s) 
     
@@ -44,26 +44,26 @@ def get_classifier_preds(grid_x, data_y,
             
             If do_std=True, there must additionally be a subdirectory called 'data' containing the standardization files called "variances.npy" and "means.npy".
     
-    with_bounds: bool, default=True
+    with_bounds: bool
         Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
     
-    p0: 'default' or 'random', default='default'
+    p0: 'default' or 'random'
         Initial guesses for parameter search. 
         
         If 'default', the SciPy curve_fit default behaviour is used 
         
         If 'random', random guesses are used (use this if num_tries>1)
         
-    method: str = 'trf', 'dogbox' or 'lm', default='trf'
+    method: str = 'trf', 'dogbox' or 'lm'
         The optimization method
         
-    maxfev: int > 0 , default=100000
+    maxfev: int > 0
         Maximal number of function evaluations (see SciPy's curve_fit)
         
-    num_tries: int > 0, default=1
+    num_tries: int > 0
         The number of times the fit shall be tried (with varying initial guesses)
         
-    xtol: float or list of floats, default 1e-8
+    xtol: float or list of floats
         Convergence criterion (see SciPy's curve_fit)    
     
     returns: int, int, ndarray of shape (l,), where l is the number of checkpoints in the "models" subdirectory
@@ -71,7 +71,7 @@ def get_classifier_preds(grid_x, data_y,
     '''
     # Data Preparation
     # Get data_x
-    data_x = get_data_x(data_y=data_y, grid_x=grid_x, 
+    data_x, _ = get_data_x(data_y=data_y, grid_x=grid_x, 
                         re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
                         coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
                         coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
@@ -80,9 +80,6 @@ def get_classifier_preds(grid_x, data_y,
     # Apply standardization
     if do_std:
         data_x = std_data(data=data_x, std_path=os.path.join(model_path, 'data/'), with_mean=True)
-    
-    # cut away out_re, which was not used to train the classifier
-    data_x = data_x[:,0:69]
     
     # Get predictions from Classifiers
     class_pred = []

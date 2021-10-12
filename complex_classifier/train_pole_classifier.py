@@ -34,7 +34,7 @@ from parameters import num_runs_classifier
 from parameters import optimizer_classifier
 from parameters import drop_prob_1_classifier, drop_prob_2_classifier, drop_prob_3_classifier
 from parameters import drop_prob_4_classifier, drop_prob_5_classifier, drop_prob_6_classifier
-from parameters import val_check_interval_classifier, es_patience_classifier
+from parameters import val_check_interval_classifier, es_patience_classifier, use_indices_classifier
 
 ##############################################################################
 ##########################   Execution   #####################################
@@ -127,8 +127,8 @@ if __name__ == '__main__':
     
     wandb.init(config=hyperparameters,
                entity="ml-tpp", project="pole_classifier",
-               group="Experiment: retry fits ",
-               notes="Classifier DataSet Experiment: In SciPy curve_fit: Set lower value for maxfev and retry fits 9 times, if they failed; with randomized p0",
+               group="Experiment: three fits ",
+               notes="Classifier DataSet Experiment: In SciPy curve_fit: Use trf, dogbox and lm to fit the data. Then use them individually or together as network input. Compare accuracies",
                tags = ["Classifier", "DataSet Experiment"])
 
     logger = WandbLogger()  
@@ -142,7 +142,7 @@ if __name__ == '__main__':
                     
         datamodule = PoleDataModule_Classifier(data_dir=data_dir_classifier, batch_size=batch_size_classifier, 
                                     train_portion=train_portion_classifier, validation_portion=val_portion_classifier, test_portion=test_portion_classifier, 
-                                    num_use_data=num_use_data_classifier)
+                                    num_use_data=num_use_data_classifier, use_indices=use_indices_classifier)
         
         checkpoint_callback1 = pl.callbacks.ModelCheckpoint(
             dirpath = models_dir_classifier,

@@ -442,8 +442,8 @@ def get_data_x(data_y, grid_x,
     xtol: float or list of floats, default 1e-8
         Convergence criterion (see SciPy's curve_fit)    
     
-    returns: numpy.ndarray of shape (m,9+60+len(grid_x))
-        data_x (network input), not yet normalized
+    returns: two numpy.ndarrays of shapes (m,9+60) and (m,len(grid_x))
+        data_x (network input) and the function values, not yet normalized
     '''
     data_y = np.atleast_2d(data_y)
     
@@ -492,9 +492,9 @@ def get_data_x(data_y, grid_x,
     mse_3c   = np.log10(mse_3c)
     
     # Everything together then gives data_x that is used to train the classifier
-    data_x = np.hstack((mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c, data_y))
+    data_x = np.hstack((mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c))
     
-    return data_x
+    return data_x, data_y
 
 def create_training_data_classifier(length, grid_x, 
                                     re_max, re_min, im_max, im_min, 
@@ -503,7 +503,9 @@ def create_training_data_classifier(length, grid_x,
                                     with_bounds, data_dir, fact, dst_min, 
                                     p0, method, maxfev, num_tries, xtol):
     '''
-    Creates training data for the NN classifier and saves it to the disk
+    Creates training data for the NN classifier and saves it to the disk.
+    
+    Data is created by performing SciPy fits with different methods, calculating MSEs and concatenating everything
     
     length: int>0 or a list of ints>=0
         The number of samples to be generated (per class if length is a list)
@@ -514,7 +516,7 @@ def create_training_data_classifier(length, grid_x,
     re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
         Define a box. Parameter configurations are searched in this box if with_bounds=True
         
-    with_bounds: bool, default=False
+    with_bounds: list of bools
         Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
         
     data_dir: str
@@ -526,23 +528,23 @@ def create_training_data_classifier(length, grid_x,
     dst_min: numeric>=0
         Drops parameter configureations, that contain poles, whose positions are nearer to each other than dst_min (complex, euclidean norm)
        
-    p0: 'default' or 'random', default='default'
+    p0: list of strings: 'default' or 'random'
         Initial guesses for parameter search. 
         
         If 'default', the SciPy curve_fit default behaviour is used 
         
         If 'random', random guesses are used (use this if num_tries>1)
         
-    method: str = 'trf', 'dogbox' or 'lm', default='trf'
-        The optimization method
+    method: list of strings: 'trf', 'dogbox' or 'lm'
+        The optimization methods (multiple possible, this is, why this is a list)
         
-    maxfev: int > 0 , default=100000
+    maxfev: list of ints > 0 
         Maximal number of function evaluations (see SciPy's curve_fit)
         
-    num_tries: int > 0, default=1
+    num_tries: list of ints > 0
         The number of times the fit shall be tried (with varying initial guesses) 
        
-    xtol: float or list of floats
+    xtol: list of floats or list of lists of floats
         Convergence criterion (see SciPy's curve_fit)                         
     
     returns: None
@@ -582,18 +584,27 @@ def create_training_data_classifier(length, grid_x,
         labels_and_params[i] = np.hstack([labels_and_params[i], np.zeros([labels_and_params[i].shape[0], fillup])])
     labels_and_params = np.vstack(labels_and_params)
     print('Maximum number of samples to be created: ', len(labels_and_params))
-
-    # Get data_x
-    data_x = get_data_x(data_y=out_re, grid_x=grid_x, 
-                        re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
-                        coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
-                        coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
-                        with_bounds=with_bounds, 
-                        p0=p0, method=method, maxfev=maxfev, num_tries=num_tries, xtol=xtol)  
     
-    ## Get rid of possible infinities that can occurr after log10 for very small MSE below machine accuracy and if the sample couldn't be fitted
-    data_x, labels_and_params = drop_not_finite_rows(
-                                data_x, labels_and_params)
+    ###########################################################################
+    # Get data_x
+    for i in range(len(method)): #use different SciPy fitting methods
+        data_x_i, out_re = get_data_x(data_y=out_re, grid_x=grid_x, 
+                            re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                            coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                            coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
+                            with_bounds=with_bounds[i], 
+                            p0=p0[i], method=method[i], maxfev=maxfev[i], num_tries=num_tries[i], xtol=xtol[i])  
+        if i==0:
+            data_x = data_x_i
+        else:
+            data_x = np.hstack([data_x, data_x_i])
+        
+        ## Get rid of possible infinities that can occurr after log10 for very small MSE below machine accuracy and if the sample couldn't be fitted
+        data_x, out_re, labels_and_params = drop_not_finite_rows(
+                                    data_x, out_re, labels_and_params)
+        
+    data_x = np.hstack([data_x, out_re])
+    ###########################################################################
     
     # Seperate labels and params array
     params = labels_and_params[:,1:]

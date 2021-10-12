@@ -54,11 +54,12 @@ fact_classifier    = np.inf  # set to very large value to not drop any samples
 dst_min_classifier = 0.0     # set to 0 to not drop any samples
 
 # Scipy curve_fit convergence parameter
-xtol_classifier = 1e-8  # can be a single int or a list of ints, one for each class 
-p0_classifier   = 'default'
-method_classifier = 'trf'
-maxfev_classifier = 100000
-num_tries_classifier = 1
+xtol_classifier        = [1e-8, 1e-8, 1e-8]  # can be a single int or a list of ints, one for each class (->list of lists)
+p0_classifier          = ['random', 'random', 'default'] # initial guess SciPy fit
+method_classifier      = ['lm', 'dogbox', 'trf'] # fitting method
+maxfev_classifier      = [100000, 100000, 100000] # ~ maximal number of optimization steps
+num_tries_classifier   = [10, 10, 1]  # retry fits
+with_bounds_classifier = [False, True, True] # use parameter boundaries?
 
 # Data split
 train_portion_classifier = 0.8
@@ -68,11 +69,12 @@ test_portion_classifier  = 0.1
 # Network and training hyperparameters
 ### ANN architecture
 architecture_classifier = 'FC3'
-in_features_classifier  = 69
+use_indices_classifier  = np.arange(0, 69*len(method_classifier)) # indices of data_x that shall be used to train the classifier
+in_features_classifier  = len(use_indices_classifier)
 out_features_classifier = 9
-hidden_dim_1_classifier = 32
-hidden_dim_2_classifier = 32
-hidden_dim_3_classifier = 32
+hidden_dim_1_classifier = 8
+hidden_dim_2_classifier = 8
+hidden_dim_3_classifier = 8
 hidden_dim_4_classifier = 0
 hidden_dim_5_classifier = 0
 hidden_dim_6_classifier = 0

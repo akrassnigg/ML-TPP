@@ -18,7 +18,7 @@ from parameters import dir_regressors, dir_classifier
 from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
 from parameters import regressor_subdirs
 from parameters import xtol_classifier, p0_classifier, method_classifier, maxfev_classifier
-from parameters import num_tries_classifier
+from parameters import num_tries_classifier, with_bounds_classifier
 
 
 ##############################################################################
@@ -49,7 +49,7 @@ if __name__ == '__main__':
                                            coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
                                            coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
                                            do_std=True, model_path=dir_classifier,
-                                           with_bounds=True, p0=p0_classifier, 
+                                           with_bounds=with_bounds_classifier, p0=p0_classifier, 
                                            method=method_classifier, maxfev=maxfev_classifier, 
                                            num_tries=num_tries_classifier, xtol = xtol_classifier)
     print(class_pred)

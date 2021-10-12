@@ -35,12 +35,15 @@ class PoleDataSet_Classifier(Dataset):
 
     num_use_data: int
         How many of the available datapoints shall be used
+        
+    use_indices: np.ndarray of shape (l,)
+        Index positions at which data_x shall be used
     """
     
     
-    def __init__(self, data_dir, num_use_data):
-        self.data_X = np.load(os.path.join(data_dir, "various_poles_data_classifier_x.npy"), allow_pickle=True).astype('float32')[:,0:69]
-        self.data_Y = np.load(os.path.join(data_dir, "various_poles_data_classifier_y.npy"), allow_pickle=True).astype('int64').reshape((-1,1)) 
+    def __init__(self, data_dir, num_use_data, use_indices):
+        self.data_X = np.load(os.path.join(data_dir, "various_poles_data_classifier_x.npy"), allow_pickle=True).astype('float32')[:,use_indices]
+        self.data_Y = np.load(os.path.join(data_dir, "various_poles_data_classifier_y.npy"), allow_pickle=True).astype('int64').reshape((-1,1))                         
         
         print("Checking shape of loaded data: X: ", np.shape(self.data_X))
         print("Checking shape of loaded data: y: ", np.shape(self.data_Y))
@@ -95,10 +98,14 @@ class PoleDataModule_Classifier(pl.LightningDataModule):
     
     num_use_data: int
         How many of the available datapoints shall be used
+        
+    use_indices: np.ndarray of shape (l,)
+        Index positions at which data_x shall be used
     """
     
     
-    def __init__(self, data_dir: str, batch_size: int, train_portion: float, validation_portion: float, test_portion: float, num_use_data):
+    def __init__(self, data_dir: str, batch_size: int, train_portion: float, validation_portion: float, test_portion: float, 
+                 num_use_data, use_indices):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
@@ -106,9 +113,10 @@ class PoleDataModule_Classifier(pl.LightningDataModule):
         self.validation_portion = validation_portion
         self.test_portion = test_portion
         self.num_use_data = num_use_data
+        self.use_indices  = use_indices
 
     def setup(self, stage):
-        all_data = PoleDataSet_Classifier(self.data_dir, num_use_data=self.num_use_data)
+        all_data = PoleDataSet_Classifier(self.data_dir, num_use_data=self.num_use_data, use_indices=self.use_indices)
             
         num_data = len(all_data)
         print("Length of all_data: ", num_data)
