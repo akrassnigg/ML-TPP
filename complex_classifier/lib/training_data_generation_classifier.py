@@ -469,16 +469,21 @@ def get_data_x(data_y, grid_x,
     out_re_1r2c = pole_curve_calc2(pole_class=7, pole_params=params_1r2c, grid_x=grid_x)
     out_re_3c   = pole_curve_calc2(pole_class=8, pole_params=params_3c,   grid_x=grid_x)
     
+    '''
+    Note: If SciPy fails and returns a nan, then pole_functions raises 'RuntimeWarning: invalid value encountered in true_divide'.
+          We don't need to worry about this, since we just drop those samples.
+    '''
+
     # Calculate the different MSEs
-    mse_1r   = mse(data_y, out_re_1r,   ax=1).reshape(-1,1)
-    mse_1c   = mse(data_y, out_re_1c,   ax=1).reshape(-1,1)
-    mse_2r   = mse(data_y, out_re_2r,   ax=1).reshape(-1,1)
-    mse_1r1c = mse(data_y, out_re_1r1c, ax=1).reshape(-1,1)
-    mse_2c   = mse(data_y, out_re_2c,   ax=1).reshape(-1,1)
-    mse_3r   = mse(data_y, out_re_3r,   ax=1).reshape(-1,1)
-    mse_2r1c = mse(data_y, out_re_2r1c, ax=1).reshape(-1,1)
-    mse_1r2c = mse(data_y, out_re_1r2c, ax=1).reshape(-1,1)
-    mse_3c   = mse(data_y, out_re_3c,   ax=1).reshape(-1,1)
+    mse_1r    = mse(data_y, out_re_1r,   ax=1).reshape(-1,1) 
+    mse_1c    = mse(data_y, out_re_1c,   ax=1).reshape(-1,1) 
+    mse_2r    = mse(data_y, out_re_2r,   ax=1).reshape(-1,1) 
+    mse_1r1c  = mse(data_y, out_re_1r1c, ax=1).reshape(-1,1)
+    mse_2c    = mse(data_y, out_re_2c,   ax=1).reshape(-1,1) 
+    mse_3r    = mse(data_y, out_re_3r,   ax=1).reshape(-1,1) 
+    mse_2r1c  = mse(data_y, out_re_2r1c, ax=1).reshape(-1,1) 
+    mse_1r2c  = mse(data_y, out_re_1r2c, ax=1).reshape(-1,1) 
+    mse_3c    = mse(data_y, out_re_3c,   ax=1).reshape(-1,1) 
     
     # Apply log10 to the MSEs to bring them to a similiar scale
     mse_1r   = np.log10(mse_1r)
@@ -490,6 +495,17 @@ def get_data_x(data_y, grid_x,
     mse_2r1c = np.log10(mse_2r1c)
     mse_1r2c = np.log10(mse_1r2c)
     mse_3c   = np.log10(mse_3c)
+    
+    # IF MSE=0 (perfect fit), then log(MSE)=-inf. Set to a finite value instead:
+    mse_1r[mse_1r==-np.inf]     = np.min(mse_1r[mse_1r!=-np.inf])
+    mse_1c[mse_1c==-np.inf]     = np.min(mse_1c[mse_1c!=-np.inf])
+    mse_2r[mse_2r==-np.inf]     = np.min(mse_2r[mse_2r!=-np.inf])
+    mse_1r1c[mse_1r1c==-np.inf] = np.min(mse_1r1c[mse_1r1c!=-np.inf])
+    mse_2c[mse_2c==-np.inf]     = np.min(mse_2c[mse_2c!=-np.inf])
+    mse_3r[mse_3r==-np.inf]     = np.min(mse_3r[mse_3r!=-np.inf])
+    mse_2r1c[mse_2r1c==-np.inf] = np.min(mse_2r1c[mse_2r1c!=-np.inf])
+    mse_1r2c[mse_1r2c==-np.inf] = np.min(mse_1r2c[mse_1r2c!=-np.inf])
+    mse_3c[mse_3c==-np.inf]     = np.min(mse_3c[mse_3c!=-np.inf])
     
     # Everything together then gives data_x that is used to train the classifier
     data_x = np.hstack((mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c))
