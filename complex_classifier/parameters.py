@@ -45,31 +45,48 @@ data_dir_classifier   = dir_classifier + 'data/'
 log_dir_classifier    = dir_classifier + 'logs/'
 models_dir_classifier = dir_classifier + 'models/'
 
-# Number of data points
-n_examples_classifier = 10000  # can be a single int or a list of ints, one for each class (which can also be 0 to drop the class).
-num_use_data_classifier = 0# can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
+##############################################
+############### Data Creation ################
+##############################################
+# Number of data points to be created: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class)
+n_examples_classifier = 10#000 
 
 # Properties of drop_small_poles and drop_near_poles
-fact_classifier    = np.inf  # set to very large value to not drop any samples
-dst_min_classifier = 0.0     # set to 0 to not drop any samples
+# Shall small poles be dropped; set to very large value to not drop any samples
+fact_classifier    = np.inf  
+# Shall samples with close poles be dropped; set to 0 to not drop any samples
+dst_min_classifier = 0.0     
 
-# Scipy curve_fit convergence parameter
-xtol_classifier        = [1e-8, 1e-8, 1e-8]  # can be a single int or a list of ints, one for each class (->list of lists)
-p0_classifier          = ['random', 'random', 'default'] # initial guess SciPy fit
-method_classifier      = ['lm', 'dogbox', 'trf'] # fitting method
-maxfev_classifier      = [100000, 100000, 100000] # ~ maximal number of optimization steps
-num_tries_classifier   = [10, 10, 1]  # retry fits
-with_bounds_classifier = [False, True, True] # use parameter boundaries?
+# Scipy curve_fit parameters
+# Fitting method
+method_classifier      = ['trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'dogbox', 'dogbox', 'lm'] 
+# Use parameter boundaries?
+with_bounds_classifier = [True, True, True, True, True, False, True, False, False] 
+# Initial guess of parameters
+p0_classifier          = ['random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random'] 
+# How many times shall we try to fit the data? Note: Values>1 only make sense if p0='random'
+num_tries_classifier   = [10, 10, 10, 10, 10, 10, 10, 10, 10]  
+# ~ Maximal number of optimization steps
+maxfev_classifier      = [100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000]
+# Convergence parameter: can be a single int or a list of ints, one for each class (->list of lists)
+xtol_classifier        = [1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8]  
+
+##############################################
+###############   Training   #################
+##############################################
+# Number of data points to be used: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
+num_use_data_classifier = 0
+# Indices of data_x that shall be used to train the classifier
+use_indices_classifier  = np.arange(0, 69*len(method_classifier)) 
 
 # Data split
 train_portion_classifier = 0.8
 val_portion_classifier   = 0.1
 test_portion_classifier  = 0.1
 
-# Network and training hyperparameters
-### ANN architecture
+# Network hyperparameters
+# ANN architecture
 architecture_classifier = 'FC3'
-use_indices_classifier  = np.arange(0, 69*len(method_classifier)) # indices of data_x that shall be used to train the classifier
 in_features_classifier  = len(use_indices_classifier)
 out_features_classifier = 9
 hidden_dim_1_classifier = 8
@@ -78,21 +95,27 @@ hidden_dim_3_classifier = 8
 hidden_dim_4_classifier = 0
 hidden_dim_5_classifier = 0
 hidden_dim_6_classifier = 0
-### Regularization
+ 
+# Training hyperparameters
+optimizer_classifier          = 'Adam'
+batch_size_classifier         = 32
+learning_rate_classifier      = 1e-3
+# Maximal number of epochs
+epochs_classifier             = int(1e15)
+val_check_interval_classifier = 0.1
+# Early Stopping patience
+es_patience_classifier        = 20
+
+# Regularization
 weight_decay_classifier = 0.0    
 drop_prob_1_classifier  = 0.0   
 drop_prob_2_classifier  = 0.0   
 drop_prob_3_classifier  = 0.0   
 drop_prob_4_classifier  = 0.0   
 drop_prob_5_classifier  = 0.0   
-drop_prob_6_classifier  = 0.0    
-### Training hparams
-optimizer_classifier          = 'Adam'
-batch_size_classifier         = 32
-learning_rate_classifier      = 1e-3
-epochs_classifier             = int(1e15)
-val_check_interval_classifier = 0.1
-es_patience_classifier        = 20
+drop_prob_6_classifier  = 0.0   
+
+# Do multiple runs and average test_acc over them?
 num_runs_classifier           = 1
 
 ##############################################################################
@@ -100,7 +123,6 @@ num_runs_classifier           = 1
 ##############################################################################
 # Class to be learned
 class_regressor = 7
-#class_regressor = 0
 
 # Directories
 regressor_subdirs = ['0-1r',
@@ -112,29 +134,44 @@ regressor_subdirs = ['0-1r',
                    '6-2r1c',
                    '7-1r2c',
                    '8-3c',]  
-#regressor_subdirs = [ '7-1r2c' ]
-
 dir_regressors       = './data_regressor/'
 dir_regressor        = dir_regressors + regressor_subdirs[class_regressor] + '/'
 data_dir_regressor   = dir_regressor + 'data/'
 log_dir_regressor    = dir_regressor + 'logs/'
 models_dir_regressor = dir_regressor + 'models/'
 
+##############################################
+############### Data Creation ################
+##############################################
 # Number of data points
 n_examples_regressor = 1000000
-num_use_data_regressor = 0# single int; Set to 0 to use all data available
 
 # Properties of drop_small_poles and drop_near_poles
-fact_regressor    = np.inf  # set to very large value to not drop any samples
-dst_min_regressor = 0.0     # set to 0 to not drop any samples
+# Shall small poles be dropped; set to very large value to not drop any samples
+fact_classifier    = np.inf  
+# Shall samples with close poles be dropped; set to 0 to not drop any samples
+dst_min_classifier = 0.0   
+
+##############################################
+###############   Training   #################
+##############################################
+# Number of data points to be used: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
+num_use_data_classifier = 0
+# After how many epochs shall the data be updated
+num_epochs_use_regressor     = int(1e15)  
+
+# Training mode: 0: start from scratch, 1: resume training from checkpoint
+training_step_regressor      = 0 
+# Name of the ckpt to resume from (must be inside models folder of the classifier)
+name_ckpt_regressor          = 'name.ckpt' 
 
 # Data split
 train_portion_regressor = 0.98
 val_portion_regressor   = 0.01
 test_portion_regressor  = 0.01
 
-# Network and training hyperparameters
-### ANN Architecture
+# Network hyperparameters
+# ANN Architecture
 architecture_regressor = 'FC6'
 out_list               = [2,4,4,6,8,6,8,10,12]
 out_features_regressor = out_list[class_regressor]  # depends on the pole class
@@ -145,7 +182,18 @@ hidden_dim_3_regressor = hidden_dim_2_regressor
 hidden_dim_4_regressor = hidden_dim_3_regressor
 hidden_dim_5_regressor = hidden_dim_4_regressor
 hidden_dim_6_regressor = hidden_dim_5_regressor 
-### Regularization
+
+# Training hyperparameters
+optimizer_regressor          = 'Adam'
+batch_size_regressor         = 1000
+learning_rate_regressor      = 1e-3   
+# Maximal number of epochs
+epochs_regressor             = int(1e15)
+val_check_interval_regressor = 0.1
+# Early Stopping patience
+es_patience_regressor        = 20
+
+# Regularization
 weight_decay_regressor = 0.0
 drop_prob_1_regressor  = 0.0   
 drop_prob_2_regressor  = 0.0   
@@ -153,17 +201,10 @@ drop_prob_3_regressor  = 0.0
 drop_prob_4_regressor  = 0.0   
 drop_prob_5_regressor  = 0.0   
 drop_prob_6_regressor  = 0.0 
-### Training hparams
-optimizer_regressor          = 'Adam'
-batch_size_regressor         = 1000
-learning_rate_regressor      = 1e-3   
-epochs_regressor             = int(1e15)
-val_check_interval_regressor = 0.1
-es_patience_regressor        = 20
-num_epochs_use_regressor     = int(1e15)  # after how many epochs shall the data be updated
+
+# Do multiple runs and average test_loss over them?
 num_runs_regressor           = 1
-training_step_regressor      = 0 #0: start from scratch, 1: resume training
-name_ckpt_regressor          = 'name.ckpt' # name of the ckpt to resume from
+
 
 
 
