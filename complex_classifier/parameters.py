@@ -49,7 +49,7 @@ models_dir_classifier = dir_classifier + 'models/'
 ############### Data Creation ################
 ##############################################
 # Number of data points to be created: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class)
-n_examples_classifier = 10#000 
+n_examples_classifier = 10000 
 
 # Properties of drop_small_poles and drop_near_poles
 # Shall small poles be dropped; set to very large value to not drop any samples
@@ -59,9 +59,9 @@ dst_min_classifier = 0.0
 
 # Scipy curve_fit parameters
 # Fitting method
-method_classifier      = ['trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'dogbox', 'dogbox', 'lm'] 
+method_classifier      = ['lm', 'dogbox', 'dogbox', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf'] 
 # Use parameter boundaries?
-with_bounds_classifier = [True, True, True, True, True, False, True, False, False] 
+with_bounds_classifier = [False, False, True, False, True, True, True, True, True] 
 # Initial guess of parameters
 p0_classifier          = ['random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random'] 
 # How many times shall we try to fit the data? Note: Values>1 only make sense if p0='random'
