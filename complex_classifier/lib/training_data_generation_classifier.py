@@ -604,6 +604,12 @@ def create_training_data_classifier(length, grid_x,
     ###########################################################################
     # Get data_x
     for i in range(len(method)): #use different SciPy fitting methods
+        print('method: ', method[i])
+        print('with_bounds: ', with_bounds[i])
+        print('p0: ', p0[i])
+        print('num_tries: ', num_tries[i])
+        print('maxfev: ', maxfev[i])
+        print('xtol: ', xtol[i])
         data_x_i, out_re = get_data_x(data_y=out_re, grid_x=grid_x, 
                             re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
                             coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
