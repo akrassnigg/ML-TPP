@@ -212,7 +212,7 @@ def get_scipy_pred(pole_class, grid_x, data_y,
                 params_tmp, _ = curve_fit(objective_1r, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_1r_jac, xtol=xtol0, method=method) if with_bounds else \
                               curve_fit(objective_1r, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_1r_jac, xtol=xtol0, method=method)
             except:
-                print('An error occured, the sample will be dropped!')
+                print('Fit failed!')
                 params_tmp = np.array([np.nan for i in range(2)])
             
         elif pole_class == 1:
@@ -224,7 +224,7 @@ def get_scipy_pred(pole_class, grid_x, data_y,
                               curve_fit(objective_1c, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_1c_jac, xtol=xtol1, method=method)
                 params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
             except:
-                print('An error occured, the sample will be dropped!')
+                print('Fit failed!')
                 params_tmp = np.array([np.nan for i in range(4)])
                 
         elif pole_class == 2:
@@ -236,7 +236,7 @@ def get_scipy_pred(pole_class, grid_x, data_y,
                               curve_fit(objective_2r, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_2r_jac, xtol=xtol2, method=method)
                 params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
             except:
-                print('An error occured, the sample will be dropped!')
+                print('Fit failed!')
                 params_tmp = np.array([np.nan for i in range(4)])
                 
         elif pole_class == 3:
@@ -248,7 +248,7 @@ def get_scipy_pred(pole_class, grid_x, data_y,
                               curve_fit(objective_1r1c, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_1r1c_jac, xtol=xtol3, method=method)
                 params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
             except:
-                print('An error occured, the sample will be dropped!')
+                print('Fit failed!')
                 params_tmp = np.array([np.nan for i in range(6)])
                 
         elif pole_class == 4:
@@ -260,7 +260,7 @@ def get_scipy_pred(pole_class, grid_x, data_y,
                               curve_fit(objective_2c, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_2c_jac, xtol=xtol4, method=method)
                 params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
             except:
-                print('An error occured, the sample will be dropped!')
+                print('Fit failed!')
                 params_tmp = np.array([np.nan for i in range(8)])
                 
         elif pole_class == 5:
@@ -272,7 +272,7 @@ def get_scipy_pred(pole_class, grid_x, data_y,
                               curve_fit(objective_3r, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_3r_jac, xtol=xtol5, method=method)
                 params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
             except:
-                print('An error occured, the sample will be dropped!')
+                print('Fit failed!')
                 params_tmp = np.array([np.nan for i in range(6)])
                 
         elif pole_class == 6:
@@ -284,7 +284,7 @@ def get_scipy_pred(pole_class, grid_x, data_y,
                               curve_fit(objective_2r1c, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_2r1c_jac, xtol=xtol6, method=method)
                 params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
             except:
-                print('An error occured, the sample will be dropped!')
+                print('Fit failed!')
                 params_tmp = np.array([np.nan for i in range(8)])
                 
         elif pole_class == 7:
@@ -296,7 +296,7 @@ def get_scipy_pred(pole_class, grid_x, data_y,
                               curve_fit(objective_1r2c, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_1r2c_jac, xtol=xtol7, method=method)
                 params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1)   
             except:
-                print('An error occured, the sample will be dropped!')
+                print('Fit failed!')
                 params_tmp = np.array([np.nan for i in range(10)])
                 
         elif pole_class == 8:
@@ -308,7 +308,7 @@ def get_scipy_pred(pole_class, grid_x, data_y,
                               curve_fit(objective_3c, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_3c_jac, xtol=xtol8, method=method)
                 params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
             except:
-                print('An error occured, the sample will be dropped!')
+                print('Fit failed!')
                 params_tmp = np.array([np.nan for i in range(12)])
         if ~np.isnan(params_tmp[0]):    # If the fit worked, break the retry loop
             break

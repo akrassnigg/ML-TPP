@@ -38,8 +38,11 @@ def drop_not_finite_rows(*arrs):
     
     arr  = np.concatenate(arrs, axis=1)
     finite = np.isfinite(arr).all(axis=1)
+    num0 = np.shape(arrs[0])[0]
     
     for i in range(len(arrs)):
         arrs[i] = arrs[i][finite]
         
+    num_dropped = num0 - np.shape(arrs[0])[0]
+    print('Number of dropped samples: ', num_dropped)
     return arrs
