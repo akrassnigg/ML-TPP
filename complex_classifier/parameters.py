@@ -122,7 +122,7 @@ num_runs_classifier           = 1
 ##############   Regressors   ################################################
 ##############################################################################
 # Class to be learned
-class_regressor = 7
+class_regressor = 0
 
 # Directories
 regressor_subdirs = ['0-1r',
@@ -148,21 +148,21 @@ n_examples_regressor = 1000000
 
 # Properties of drop_small_poles and drop_near_poles
 # Shall small poles be dropped; set to very large value to not drop any samples
-fact_classifier    = np.inf  
+fact_regressor    = np.inf  
 # Shall samples with close poles be dropped; set to 0 to not drop any samples
-dst_min_classifier = 0.0   
+dst_min_regressor = 0.0   
 
 ##############################################
 ###############   Training   #################
 ##############################################
 # Number of data points to be used: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
-num_use_data_classifier = 0
+num_use_data_regressor = 0
 # After how many epochs shall the data be updated
 num_epochs_use_regressor     = int(1e15)  
 
 # Training mode: 0: start from scratch, 1: resume training from checkpoint
 training_step_regressor      = 0 
-# Name of the ckpt to resume from (must be inside models folder of the classifier)
+# Name of the ckpt to resume from (must be inside models folder of the regressor)
 name_ckpt_regressor          = 'name.ckpt' 
 
 # Data split

@@ -16,10 +16,12 @@ from torch import optim
 from torch.utils.data import Dataset, DataLoader, random_split
 import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
+import matplotlib.pyplot as plt
 
 from lib.training_data_generation_regressor import create_training_data_regressor
 from lib.architectures import FC6
 from lib.standardization_functions import rm_std_data
+from lib.curve_calc_functions_torch import pole_curve_calc2_torch
 
 
 ##############################################################################
@@ -320,7 +322,84 @@ def myL1_norm(y_hat, y, pole_class, std_path,
     
     return F.l1_loss(y_hat, y)
 
+
+class pole_reconstruction_loss(torch.nn.Module):
+    '''
+    Reconstruction Loss for Pole Regressor
     
+    y_hat: torch.Tensor of shape (batch_size, out_features_regressor)
+        Parameter predictions 
+        
+    x: torch.Tensor of shape (batch_size, in_features_regressor)
+        Actual pole curves 
+        
+    pole_class: int: 0-8
+        The pole class
+        
+    std_path: str
+        Path to the folder, where variances and means files shall be stored
+        
+    grid_x: np.ndarray or torch.Tensor of shape (in_features_regressor,) or (1,in_features_regressor)
+        The integration grid
+        
+    return: scalar number 
+        The MSE Reconstruction Loss
+    '''
+    def __init__(self, pole_class, std_path, grid_x):
+        super(pole_reconstruction_loss,self).__init__()
+        self.pole_class = pole_class
+        self.std_path   = std_path
+        self.grid_x     = grid_x
+        self.prepared   = False
+        
+    def preparation(self, y_hat):
+        # Get device of Tensors 
+        self.used_device = y_hat.device
+        
+        # Prepare grid_x
+        if type(self.grid_x) == np.ndarray:
+            self.grid_x = torch.from_numpy(self.grid_x)
+        self.grid_x = self.grid_x.to(device=self.used_device)
+        
+        # Prepare removal of std from x
+        variances_x   = torch.from_numpy(np.load(os.path.join(self.std_path, 'variances.npy'), allow_pickle=True).astype('float32'))
+        self.scales_x = (torch.sqrt(variances_x)).to(device=self.used_device)
+        
+        # Prepare removal of std from y_hat
+        variances_y   = torch.from_numpy(np.load(os.path.join(self.std_path, 'variances_params.npy'), allow_pickle=True).astype('float32'))
+        self.scales_y = (torch.sqrt(variances_y)).to(device=self.used_device)
+        means_y       = torch.from_numpy(np.load(os.path.join(self.std_path, 'means_params.npy'), allow_pickle=True).astype('float32'))
+        self.means_y  = means_y.to(device=self.used_device)
+        
+        # Preparation finished
+        self.prepared = True
+        
+    def forward(self,y_hat, x):
+        if self.prepared == False:
+            self.preparation(y_hat)
+        
+        # Remove std from x   
+        x      = x * torch.tile(self.scales_x, (x.shape[0],1))
+        
+        # Remove std from y_hat
+        y_hat  = y_hat * torch.tile(self.scales_y, (y_hat.shape[0],1)) + torch.tile(self.means_y, (y_hat.shape[0],1))
+        
+        # Calculate Pole curves from y_hat
+        x_pred = pole_curve_calc2_torch(pole_class=self.pole_class, pole_params=y_hat, grid_x=self.grid_x, device=self.used_device)
+        
+        # Calculate MSE
+        loss   = F.mse_loss(x_pred, x).item() 
+        ###########################################################
+        #f1 = x_pred[0,:].detach().cpu().numpy()
+        #f2 = x[0,:].detach().cpu().numpy()
+        #plt.plot(f1)
+        #plt.plot(f2)
+        #plt.show()
+        #print(loss)
+        ###########################################################
+        return loss
+
+
 class Pole_Regressor(LightningModule):
     """
     Basic lightning model to use a vector of inputs in order to predict
@@ -334,6 +413,9 @@ class Pole_Regressor(LightningModule):
     
     re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: floats
         The parameter boundaries
+    
+    grid_x: np.ndarray or torch.Tensor of shape (in_features_regressor,) or (1,in_features_regressor)
+        The integration grid
     
     weight_decay, learning_rate: floats
     
@@ -352,6 +434,9 @@ class Pole_Regressor(LightningModule):
                  re_max, re_min, im_max, im_min, 
                  coeff_re_max, coeff_re_min, 
                  coeff_im_max, coeff_im_min,
+                 
+                 # The Integration grid
+                 grid_x,
                  
                  # Regularization
                  weight_decay:  float = 0.0,
@@ -372,6 +457,7 @@ class Pole_Regressor(LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model = globals()[architecture](**kwargs)
+        self.Reconstruction_loss = pole_reconstruction_loss(pole_class=pole_class, std_path=std_path, grid_x=grid_x)
  
     def forward(self, x):
         x = self.model(x)
@@ -393,6 +479,11 @@ class Pole_Regressor(LightningModule):
         val_loss = F.l1_loss(y_hat, y)
         self.log('val_loss', val_loss, on_step=False, on_epoch=True)
         
+        #
+        val_reconstruction_loss = self.Reconstruction_loss(y_hat, x)   
+        self.log('val_reconstruction_loss', val_reconstruction_loss, on_step=False, on_epoch=True)
+        #
+         
         val_norm_l1_loss = myL1_norm(y_hat, y, pole_class=self.hparams.pole_class, std_path=self.hparams.std_path,
                                      re_max=self.hparams.re_max, re_min=self.hparams.re_min, 
                                      im_max=self.hparams.im_max, im_min=self.hparams.im_min, 

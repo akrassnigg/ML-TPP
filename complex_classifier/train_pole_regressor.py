@@ -55,6 +55,8 @@ if __name__ == '__main__':
                 coeff_im_max = coeff_im_max, 
                 coeff_im_min = coeff_im_min,
                 
+                grid_x=standard_re,
+                
                 architecture = architecture_regressor,
                 in_features  = in_features_regressor,
                 out_features = out_features_regressor, 
