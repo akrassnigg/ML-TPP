@@ -49,7 +49,7 @@ models_dir_classifier = dir_classifier + 'models/'
 ############### Data Creation ################
 ##############################################
 # Number of data points to be created: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class)
-n_examples_classifier = 10000 
+n_examples_classifier = 10000
 
 # Properties of drop_small_poles and drop_near_poles
 # Shall small poles be dropped; set to very large value to not drop any samples

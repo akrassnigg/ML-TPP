@@ -497,19 +497,18 @@ def get_data_x(data_y, grid_x,
     mse_3c   = np.log10(mse_3c)
     
     # IF MSE=0 (perfect fit), then log(MSE)=-inf. Set to a finite value instead:
-    mse_1r[mse_1r==-np.inf]     = np.min(mse_1r[mse_1r!=-np.inf])
-    mse_1c[mse_1c==-np.inf]     = np.min(mse_1c[mse_1c!=-np.inf])
-    mse_2r[mse_2r==-np.inf]     = np.min(mse_2r[mse_2r!=-np.inf])
-    mse_1r1c[mse_1r1c==-np.inf] = np.min(mse_1r1c[mse_1r1c!=-np.inf])
-    mse_2c[mse_2c==-np.inf]     = np.min(mse_2c[mse_2c!=-np.inf])
-    mse_3r[mse_3r==-np.inf]     = np.min(mse_3r[mse_3r!=-np.inf])
-    mse_2r1c[mse_2r1c==-np.inf] = np.min(mse_2r1c[mse_2r1c!=-np.inf])
-    mse_1r2c[mse_1r2c==-np.inf] = np.min(mse_1r2c[mse_1r2c!=-np.inf])
-    mse_3c[mse_3c==-np.inf]     = np.min(mse_3c[mse_3c!=-np.inf])
+    mse_1r[mse_1r==-np.inf]     = np.min(mse_1r[np.isfinite(mse_1r)])
+    mse_1c[mse_1c==-np.inf]     = np.min(mse_1c[np.isfinite(mse_1c)])
+    mse_2r[mse_2r==-np.inf]     = np.min(mse_2r[np.isfinite(mse_2r)])
+    mse_1r1c[mse_1r1c==-np.inf] = np.min(mse_1r1c[np.isfinite(mse_1r1c)])
+    mse_2c[mse_2c==-np.inf]     = np.min(mse_2c[np.isfinite(mse_2c)])
+    mse_3r[mse_3r==-np.inf]     = np.min(mse_3r[np.isfinite(mse_3r)])
+    mse_2r1c[mse_2r1c==-np.inf] = np.min(mse_2r1c[np.isfinite(mse_2r1c)])
+    mse_1r2c[mse_1r2c==-np.inf] = np.min(mse_1r2c[np.isfinite(mse_1r2c)])
+    mse_3c[mse_3c==-np.inf]     = np.min(mse_3c[np.isfinite(mse_3c)])
     
     # Everything together then gives data_x that is used to train the classifier
     data_x = np.hstack((mse_1r, mse_1c, mse_2r, mse_1r1c, mse_2c, mse_3r, mse_2r1c, mse_1r2c, mse_3c, params_1r, params_1c, params_2r, params_1r1c, params_2c, params_3r, params_2r1c, params_1r2c, params_3c))
-    
     return data_x, data_y
 
 def create_training_data_classifier(length, grid_x, 
@@ -600,7 +599,7 @@ def create_training_data_classifier(length, grid_x,
         labels_and_params[i] = np.hstack([labels_and_params[i], np.zeros([labels_and_params[i].shape[0], fillup])])
     labels_and_params = np.vstack(labels_and_params)
     print('Maximum number of samples to be created: ', len(labels_and_params))
-    
+
     ###########################################################################
     # Get data_x
     for i in range(len(method)): #use different SciPy fitting methods
@@ -621,9 +620,11 @@ def create_training_data_classifier(length, grid_x,
         else:
             data_x = np.hstack([data_x, data_x_i])
         
-        ## Get rid of possible infinities that can occurr after log10 for very small MSE below machine accuracy and if the sample couldn't be fitted
+        ## Get rid of infinities that occur if the sample couldn't be fitted
         data_x, out_re, labels_and_params = drop_not_finite_rows(
                                     data_x, out_re, labels_and_params)
+        
+        labels = labels_and_params[:,0].reshape(-1)
         
     data_x = np.hstack([data_x, out_re])
     ###########################################################################
@@ -647,9 +648,10 @@ def create_training_data_classifier(length, grid_x,
         print(str(i) + ': ', np.sum(labels==i))
     return
 
+    
 
 
 
 
-
+    
 #
