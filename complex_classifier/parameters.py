@@ -59,17 +59,17 @@ dst_min_classifier = 0.0
 
 # Scipy curve_fit parameters
 # Fitting method
-method_classifier      = ['lm', 'dogbox', 'dogbox', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf'] 
+method_classifier      = ['lm', 'dogbox', 'dogbox', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf'] 
 # Use parameter boundaries?
-with_bounds_classifier = [False, False, True, False, True, True, True, True, True] 
+with_bounds_classifier = [False, False, True, False, True, True, True, True, True, True, True, True, True, True] 
 # Initial guess of parameters
-p0_classifier          = ['random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random'] 
+p0_classifier          = ['random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random'] 
 # How many times shall we try to fit the data? Note: Values>1 only make sense if p0='random'
-num_tries_classifier   = [10, 10, 10, 10, 10, 10, 10, 10, 10]  
+num_tries_classifier   = [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10]  
 # ~ Maximal number of optimization steps
-maxfev_classifier      = [100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000]
+maxfev_classifier      = [100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000]
 # Convergence parameter: can be a single int or a list of ints, one for each class (->list of lists)
-xtol_classifier        = [1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8]  
+xtol_classifier        = [1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8]  
 
 ##############################################
 ###############   Training   #################
@@ -77,7 +77,8 @@ xtol_classifier        = [1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8]
 # Number of data points to be used: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
 num_use_data_classifier = 0
 # Indices of data_x that shall be used to train the classifier
-use_indices_classifier  = np.arange(0, 69*len(method_classifier)) 
+use_indices_classifier  = np.hstack([   np.arange(69*0, 69*7)  ])
+input_name_classifier   = 'lm+dogbox_b=F+dogbox_b=T+trf_b=F+trf_b=Tx3'
 
 # Data split
 train_portion_classifier = 0.8

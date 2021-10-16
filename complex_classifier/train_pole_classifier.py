@@ -35,6 +35,7 @@ from parameters import optimizer_classifier
 from parameters import drop_prob_1_classifier, drop_prob_2_classifier, drop_prob_3_classifier
 from parameters import drop_prob_4_classifier, drop_prob_5_classifier, drop_prob_6_classifier
 from parameters import val_check_interval_classifier, es_patience_classifier, use_indices_classifier
+from parameters import input_name_classifier   
 
 ##############################################################################
 ##########################   Execution   #####################################
@@ -120,14 +121,16 @@ if __name__ == '__main__':
                 batch_size               = batch_size_classifier,
                 
                 val_check_interval = val_check_interval_classifier,
-                es_patience        = es_patience_classifier
+                es_patience        = es_patience_classifier,
+
+                input = input_name_classifier
 		)
     
     hyperparameters = {**net_hyperparameters, **other_hyperparameters}
     
     wandb.init(config=hyperparameters,
                entity="ml-tpp", project="pole_classifier",
-               group="Experiment: three fits ",
+               group="Experiment: multiple fits 2",
                notes="Classifier DataSet Experiment: In SciPy curve_fit: Use trf, dogbox and lm to fit the data. Then use them individually or together as network input. Compare accuracies",
                tags = ["Classifier", "DataSet Experiment"])
 
