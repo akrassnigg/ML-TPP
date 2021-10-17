@@ -342,7 +342,7 @@ class pole_reconstruction_loss(torch.nn.Module):
     grid_x: np.ndarray or torch.Tensor of shape (in_features_regressor,) or (1,in_features_regressor)
         The integration grid
         
-    return: scalar number 
+    return: scalar torch.Tensor
         The MSE Reconstruction Loss
     '''
     def __init__(self, pole_class, std_path, grid_x):
@@ -359,7 +359,7 @@ class pole_reconstruction_loss(torch.nn.Module):
         # Prepare grid_x
         if type(self.grid_x) == np.ndarray:
             self.grid_x = torch.from_numpy(self.grid_x)
-        self.grid_x = self.grid_x.to(device=self.used_device)
+        self.grid_x = self.grid_x.to(device=self.used_device).float()
         
         # Prepare removal of std from x
         variances_x   = torch.from_numpy(np.load(os.path.join(self.std_path, 'variances.npy'), allow_pickle=True).astype('float32'))
@@ -388,7 +388,7 @@ class pole_reconstruction_loss(torch.nn.Module):
         x_pred = pole_curve_calc2_torch(pole_class=self.pole_class, pole_params=y_hat, grid_x=self.grid_x, device=self.used_device)
         
         # Calculate MSE
-        loss   = F.mse_loss(x_pred, x).item() 
+        loss   = F.mse_loss(x_pred, x)
         ###########################################################
         #f1 = x_pred[0,:].detach().cpu().numpy()
         #f2 = x[0,:].detach().cpu().numpy()
@@ -467,42 +467,62 @@ class Pole_Regressor(LightningModule):
         x, y = batch      
         y_hat = self(x)
                
-        loss = F.l1_loss(y_hat, y)
-        self.log('train_loss', loss, on_step=True, on_epoch=False)
+        parameter_loss = F.mse_loss(y_hat, y)
+        self.log('train_parameter_loss', parameter_loss, on_step=True, on_epoch=False) 
 
-        return loss
+        reconstruction_loss = self.Reconstruction_loss(y_hat, x)  
+        self.log('train_reconstruction_loss', reconstruction_loss, on_step=True, on_epoch=False) 
+
+        # Loss to be used for training:
+        train_loss = parameter_loss + 1e-100*reconstruction_loss
+        self.log('train_loss', train_loss, on_step=True, on_epoch=False) 
+
+        return train_loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
            
-        val_loss = F.l1_loss(y_hat, y)
-        self.log('val_loss', val_loss, on_step=False, on_epoch=True)
-        
-        #
-        val_reconstruction_loss = self.Reconstruction_loss(y_hat, x)   
-        self.log('val_reconstruction_loss', val_reconstruction_loss, on_step=False, on_epoch=True)
-        #
+        parameter_loss = F.mse_loss(y_hat, y)
+        self.log('val_parameter_loss', parameter_loss, on_step=False, on_epoch=True) 
+
+        reconstruction_loss = self.Reconstruction_loss(y_hat, x)  
+        self.log('val_reconstruction_loss', reconstruction_loss, on_step=False, on_epoch=True) 
          
-        val_norm_l1_loss = myL1_norm(y_hat, y, pole_class=self.hparams.pole_class, std_path=self.hparams.std_path,
+        parameter_error_percent = myL1_norm(y_hat, y, pole_class=self.hparams.pole_class, std_path=self.hparams.std_path,
                                      re_max=self.hparams.re_max, re_min=self.hparams.re_min, 
                                      im_max=self.hparams.im_max, im_min=self.hparams.im_min, 
                                      coeff_re_max=self.hparams.coeff_re_max, coeff_re_min=self.hparams.coeff_re_min, 
                                      coeff_im_max=self.hparams.coeff_im_max, coeff_im_min=self.hparams.coeff_im_min)
-        self.log('val_norm_l1_loss', val_norm_l1_loss, on_step=False, on_epoch=True)
+        self.log('val_parameter_error', parameter_error_percent, on_step=False, on_epoch=True)
         
-        val_l1_loss = myL1(y_hat, y, std_path=self.hparams.std_path)
-        self.log('val_l1_loss', val_l1_loss, on_step=False, on_epoch=True)
-        
+        # Loss to be used for validation:
+        val_loss = parameter_loss + 1e-100*reconstruction_loss
+        self.log('val_loss', val_loss, on_step=False, on_epoch=True) 
+
         return val_loss
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
         
-        test_loss = F.l1_loss(y_hat, y)
-        self.log('test_loss', test_loss, on_step=False, on_epoch=True)
+        parameter_loss = F.mse_loss(y_hat, y)
+        self.log('test_parameter_loss', parameter_loss, on_step=False, on_epoch=True) 
+
+        reconstruction_loss = self.Reconstruction_loss(y_hat, x)  
+        self.log('test_reconstruction_loss', reconstruction_loss, on_step=False, on_epoch=True) 
         
+        parameter_error_percent = myL1_norm(y_hat, y, pole_class=self.hparams.pole_class, std_path=self.hparams.std_path,
+                                     re_max=self.hparams.re_max, re_min=self.hparams.re_min, 
+                                     im_max=self.hparams.im_max, im_min=self.hparams.im_min, 
+                                     coeff_re_max=self.hparams.coeff_re_max, coeff_re_min=self.hparams.coeff_re_min, 
+                                     coeff_im_max=self.hparams.coeff_im_max, coeff_im_min=self.hparams.coeff_im_min)
+        self.log('test_parameter_error', parameter_error_percent, on_step=False, on_epoch=True)
+
+        # Loss to be used for testing:
+        test_loss = parameter_loss + 1e-100*reconstruction_loss
+        self.log('test_loss', test_loss, on_step=False, on_epoch=True) 
+
         return test_loss
 
     def configure_optimizers(self):

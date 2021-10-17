@@ -34,6 +34,7 @@ from parameters import n_examples_regressor
 from parameters import num_runs_regressor
 from parameters import name_ckpt_regressor
 from parameters import class_regressor
+from parameters import loss_name_regressor
 
 
 ##############################################################################
@@ -91,15 +92,17 @@ if __name__ == '__main__':
                 batch_size               = batch_size_regressor,
                 
                 val_check_interval = val_check_interval_regressor,
-                es_patience        = es_patience_regressor
+                es_patience        = es_patience_regressor,
+
+                loss = loss_name_regressor
 		)
     
     hyperparameters = {**net_hyperparameters, **other_hyperparameters}
     
     wandb.init(config=hyperparameters,
                entity="ml-tpp", project="pole_classifier",
-               group="Test Runs",
-               notes="Just a test run",
+               group="Regressor Experiment: Reconstruction Loss",
+               notes=" ",
                tags = ["Regressor"])
 
     logger = WandbLogger() 

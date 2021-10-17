@@ -193,6 +193,8 @@ epochs_regressor             = int(1e15)
 val_check_interval_regressor = 0.1
 # Early Stopping patience
 es_patience_regressor        = 20
+# Name of the loss function; Note, this is only for logging purposes, the actually used loss is not read from here
+loss_name_regressor = 'ParameterLoss + 1e-100*ReconstructionLoss'
 
 # Regularization
 weight_decay_regressor = 0.0
