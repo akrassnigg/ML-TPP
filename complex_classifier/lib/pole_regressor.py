@@ -9,9 +9,11 @@ Regressor based on pytorch basic template
 """
 import os
 import sys
+import time
 import numpy as np
 import torch
 import torch.nn.functional as F
+import torch.nn as nn
 from torch import optim
 from torch.utils.data import Dataset, DataLoader, random_split
 import pytorch_lightning as pl
@@ -20,7 +22,7 @@ import matplotlib.pyplot as plt
 
 from lib.training_data_generation_regressor import create_training_data_regressor
 from lib.architectures import FC6
-from lib.standardization_functions import rm_std_data
+from lib.standardization_functions import rm_std_data, rm_std_data_torch
 from lib.curve_calc_functions_torch import pole_curve_calc2_torch
 
 
@@ -220,109 +222,6 @@ class PoleDataModule_Regressor(pl.LightningDataModule):
 ###########################   Regressor    ###################################
 ##############################################################################
 
-
-def myL1(y_hat, y, std_path):
-    '''
-    Removes standardization from y and y_hat and returns the L1 error
-    
-    y, y_hat: torch.Tensors of equal shape
-        Predictions and actual values
-        
-    std_path: str
-        Path to the folder, where variances and means files shall be stored
-        
-    return: scalar torch.Tensor
-        The L1 loss/error
-    '''
-    
-    y     = torch.from_numpy(rm_std_data(data=y.cpu().detach().numpy(),     with_mean=True, 
-                                     std_path=std_path, name_var='variances_params.npy', name_mean='means_params.npy'))
-    y_hat = torch.from_numpy(rm_std_data(data=y_hat.cpu().detach().numpy(), with_mean=True, 
-                                     std_path=std_path, name_var='variances_params.npy', name_mean='means_params.npy'))
-    return F.l1_loss(y_hat, y)
-
-def myL1_norm(y_hat, y, pole_class, std_path,
-              re_max, re_min, im_max, im_min, 
-              coeff_re_max, coeff_re_min, 
-              coeff_im_max, coeff_im_min):
-    '''
-    Removes standardization from y and y_hat, normalizes their elements to [0,1] and returns the L1 error
-    
-    y, y_hat: torch.Tensors of equal shape
-        Predictions and actual values
-        
-    pole_class: int: 0-8
-        The pole class
-        
-    std_path: str
-        Path to the folder, where variances and means files shall be stored
-        
-    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
-        Define a box
-        
-    return: scalar torch.Tensor
-        The L1 loss/error
-    '''
-    
-    y     = torch.from_numpy(rm_std_data(data=y.cpu().detach().numpy(),     with_mean=True, 
-                                     std_path=std_path, name_var='variances_params.npy', name_mean='means_params.npy'))
-    y_hat = torch.from_numpy(rm_std_data(data=y_hat.cpu().detach().numpy(), with_mean=True, 
-                                     std_path=std_path, name_var='variances_params.npy', name_mean='means_params.npy'))
-    
-    if pole_class == 0:
-        max_params = np.array([[re_max],[coeff_re_max]])
-        min_params = np.array([[re_min],[-coeff_re_max]])
-        min_params = np.transpose(np.tile(min_params, (1,len(y))),(1,0))
-        max_params = np.transpose(np.tile(max_params, (1,len(y))),(1,0))
-    elif pole_class == 1:
-        max_params = np.array([[re_max],[im_max],[coeff_re_max],[coeff_im_max]])
-        min_params = np.array([[re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
-        min_params = np.transpose(np.tile(min_params, (1,len(y))),(1,0))
-        max_params = np.transpose(np.tile(max_params, (1,len(y))),(1,0))
-    elif pole_class == 2:
-        max_params = np.array([[re_max],[coeff_re_max]])
-        min_params = np.array([[re_min],[-coeff_re_max]])
-        min_params = np.transpose(np.tile(min_params, (2,len(y))),(1,0))
-        max_params = np.transpose(np.tile(max_params, (2,len(y))),(1,0))
-    elif pole_class == 3:
-        max_params = np.array([[re_max],[coeff_re_max], [re_max],[im_max],[coeff_re_max],[coeff_im_max]])
-        min_params = np.array([[re_min],[-coeff_re_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
-        min_params = np.transpose(np.tile(min_params, (1,len(y))),(1,0))
-        max_params = np.transpose(np.tile(max_params, (1,len(y))),(1,0))
-    elif pole_class == 4:
-        max_params = np.array([[re_max],[im_max],[coeff_re_max],[coeff_im_max]])
-        min_params = np.array([[re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
-        min_params = np.transpose(np.tile(min_params, (2,len(y))),(1,0))
-        max_params = np.transpose(np.tile(max_params, (2,len(y))),(1,0))
-    elif pole_class == 5:
-        max_params = np.array([[re_max],[coeff_re_max]])
-        min_params = np.array([[re_min],[-coeff_re_max]])
-        min_params = np.transpose(np.tile(min_params, (3,len(y))),(1,0))
-        max_params = np.transpose(np.tile(max_params, (3,len(y))),(1,0))
-    elif pole_class == 6:
-        max_params = np.array([[re_max],[coeff_re_max],  [re_max],[coeff_re_max],  [re_max],[im_max],[coeff_re_max],[coeff_im_max]])
-        min_params = np.array([[re_min],[-coeff_re_max], [re_min],[-coeff_re_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
-        min_params = np.transpose(np.tile(min_params, (1,len(y))),(1,0))
-        max_params = np.transpose(np.tile(max_params, (1,len(y))),(1,0))
-    elif pole_class == 7:
-        max_params = np.array([[re_max],[coeff_re_max],  [re_max],[im_max],[coeff_re_max],[coeff_im_max],   [re_max],[im_max],[coeff_re_max],[coeff_im_max]])
-        min_params = np.array([[re_min],[-coeff_re_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
-        min_params = np.transpose(np.tile(min_params, (1,len(y))),(1,0))
-        max_params = np.transpose(np.tile(max_params, (1,len(y))),(1,0))
-    elif pole_class == 8:
-        max_params = np.array([[re_max],[im_max],[coeff_re_max],[coeff_im_max]])
-        min_params = np.array([[re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
-        min_params = np.transpose(np.tile(min_params, (3,len(y))),(1,0))
-        max_params = np.transpose(np.tile(max_params, (3,len(y))),(1,0))
-    else:
-        sys.exit("Undefined label.")
-    
-    y     = (y - min_params) / (max_params - min_params)
-    y_hat = (y_hat - min_params) / (max_params - min_params)
-    
-    return F.l1_loss(y_hat, y)
-
-
 class pole_reconstruction_loss(torch.nn.Module):
     '''
     Reconstruction Loss for Pole Regressor
@@ -342,15 +241,18 @@ class pole_reconstruction_loss(torch.nn.Module):
     grid_x: np.ndarray or torch.Tensor of shape (in_features_regressor,) or (1,in_features_regressor)
         The integration grid
         
+    loss_type: str: 'mse' or 'l1'
+        
     return: scalar torch.Tensor
         The MSE Reconstruction Loss
     '''
-    def __init__(self, pole_class, std_path, grid_x):
+    def __init__(self, pole_class, std_path, grid_x, loss_type):
         super(pole_reconstruction_loss,self).__init__()
         self.pole_class = pole_class
         self.std_path   = std_path
         self.grid_x     = grid_x
         self.prepared   = False
+        self.loss_type  = loss_type
         
     def preparation(self, y_hat):
         # Get device of Tensors 
@@ -388,15 +290,10 @@ class pole_reconstruction_loss(torch.nn.Module):
         x_pred = pole_curve_calc2_torch(pole_class=self.pole_class, pole_params=y_hat, grid_x=self.grid_x, device=self.used_device)
         
         # Calculate MSE
-        loss   = F.mse_loss(x_pred, x)
-        ###########################################################
-        #f1 = x_pred[0,:].detach().cpu().numpy()
-        #f2 = x[0,:].detach().cpu().numpy()
-        #plt.plot(f1)
-        #plt.plot(f2)
-        #plt.show()
-        #print(loss)
-        ###########################################################
+        if self.loss_type == 'mse':
+            loss   = F.mse_loss(x_pred, x)
+        elif self.loss_type == 'l1':
+            loss   = F.l1_loss(x_pred, x)
         return loss
 
 
@@ -438,6 +335,10 @@ class Pole_Regressor(LightningModule):
                  # The Integration grid
                  grid_x,
                  
+                 # Specify the loss
+                 parameter_loss_type, reconstruction_loss_type,
+                 parameter_loss_coeff, reconstruction_loss_coeff,
+                 
                  # Regularization
                  weight_decay:  float = 0.0,
                  
@@ -457,73 +358,102 @@ class Pole_Regressor(LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model = globals()[architecture](**kwargs)
-        self.Reconstruction_loss = pole_reconstruction_loss(pole_class=pole_class, std_path=std_path, grid_x=grid_x)
+        self.Reconstruction_loss_mse = pole_reconstruction_loss(pole_class=pole_class, std_path=std_path, grid_x=grid_x, loss_type='mse')
+        self.Reconstruction_loss_l1  = pole_reconstruction_loss(pole_class=pole_class, std_path=std_path, grid_x=grid_x, loss_type='l1')
+        self.Parameter_loss_mse      = nn.MSELoss()
+        self.Parameter_loss_l1       = nn.L1Loss()
+        
+        self.boundary_setup_finished = False
+        
+    def losses(self, x, y, y_hat):
+        parameter_loss_type            = self.hparams.parameter_loss_type
+        reconstruction_loss_type       = self.hparams.reconstruction_loss_type
+        parameter_loss_coeff           = self.hparams.parameter_loss_coeff
+        reconstruction_loss_coeff      = self.hparams.reconstruction_loss_coeff
+        
+        if parameter_loss_type        == 'mse':
+            parameter_loss             = self.Parameter_loss_mse(y_hat, y)
+        elif parameter_loss_type      == 'l1':
+            parameter_loss             = self.Parameter_loss_l1(y_hat, y)
+        if reconstruction_loss_type   == 'mse':
+            reconstruction_loss        = self.Reconstruction_loss_mse(y_hat, x)  
+        elif reconstruction_loss_type == 'l1':
+            reconstruction_loss        = self.Reconstruction_loss_l1(y_hat, x)  
+
+        # loss that is used to train the network:
+        loss                           = (parameter_loss_coeff*parameter_loss + 
+                                          reconstruction_loss_coeff*reconstruction_loss)
+        return [parameter_loss, reconstruction_loss, loss]
  
     def forward(self, x):
         x = self.model(x)
+        x = self.apply_boundaries(x)
         return x
     
     def training_step(self, batch, batch_idx):
         x, y = batch      
-        y_hat = self(x)
-               
-        parameter_loss = F.mse_loss(y_hat, y)
-        self.log('train_parameter_loss', parameter_loss, on_step=True, on_epoch=False) 
-
-        reconstruction_loss = self.Reconstruction_loss(y_hat, x)  
-        self.log('train_reconstruction_loss', reconstruction_loss, on_step=True, on_epoch=False) 
-
-        # Loss to be used for training:
-        train_loss = parameter_loss + 1e-100*reconstruction_loss
-        self.log('train_loss', train_loss, on_step=True, on_epoch=False) 
-
-        return train_loss
+        y_hat = self(x)             
+        _, _, loss = self.losses(x=x,y=y,y_hat=y_hat)
+        self.log('train_loss', loss, on_step=True, on_epoch=False) 
+        return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self(x)
-           
-        parameter_loss = F.mse_loss(y_hat, y)
-        self.log('val_parameter_loss', parameter_loss, on_step=False, on_epoch=True) 
-
-        reconstruction_loss = self.Reconstruction_loss(y_hat, x)  
-        self.log('val_reconstruction_loss', reconstruction_loss, on_step=False, on_epoch=True) 
-         
-        parameter_error_percent = myL1_norm(y_hat, y, pole_class=self.hparams.pole_class, std_path=self.hparams.std_path,
-                                     re_max=self.hparams.re_max, re_min=self.hparams.re_min, 
-                                     im_max=self.hparams.im_max, im_min=self.hparams.im_min, 
-                                     coeff_re_max=self.hparams.coeff_re_max, coeff_re_min=self.hparams.coeff_re_min, 
-                                     coeff_im_max=self.hparams.coeff_im_max, coeff_im_min=self.hparams.coeff_im_min)
-        self.log('val_parameter_error', parameter_error_percent, on_step=False, on_epoch=True)
-        
-        # Loss to be used for validation:
-        val_loss = parameter_loss + 1e-100*reconstruction_loss
-        self.log('val_loss', val_loss, on_step=False, on_epoch=True) 
-
-        return val_loss
+        y_hat = self(x)     
+        _, _, loss = self.losses(x=x,y=y,y_hat=y_hat)
+        self.log('val_loss', loss, on_step=False, on_epoch=True) 
+        return loss
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
+        _, _, loss = self.losses(x=x,y=y,y_hat=y_hat)
+        self.log('test_loss', loss, on_step=False, on_epoch=True) 
         
-        parameter_loss = F.mse_loss(y_hat, y)
-        self.log('test_parameter_loss', parameter_loss, on_step=False, on_epoch=True) 
-
-        reconstruction_loss = self.Reconstruction_loss(y_hat, x)  
-        self.log('test_reconstruction_loss', reconstruction_loss, on_step=False, on_epoch=True) 
+        #######################################################################
+        #######################################################################
+        # Log Test losses without std (remove std)
+        # Remove std from x, y and y_hat
+        x           = rm_std_data_torch(data=x, with_mean=False, 
+                                        std_path=self.hparams.std_path, name_var="variances.npy")
+        y           = rm_std_data_torch(data=y, with_mean=True, 
+                                        std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
+        y_hat       = rm_std_data_torch(data=y_hat, with_mean=True, 
+                                        std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
         
-        parameter_error_percent = myL1_norm(y_hat, y, pole_class=self.hparams.pole_class, std_path=self.hparams.std_path,
-                                     re_max=self.hparams.re_max, re_min=self.hparams.re_min, 
-                                     im_max=self.hparams.im_max, im_min=self.hparams.im_min, 
-                                     coeff_re_max=self.hparams.coeff_re_max, coeff_re_min=self.hparams.coeff_re_min, 
-                                     coeff_im_max=self.hparams.coeff_im_max, coeff_im_min=self.hparams.coeff_im_min)
-        self.log('test_parameter_error', parameter_error_percent, on_step=False, on_epoch=True)
+        # Calculate predicted curve
+        grid        = torch.from_numpy(self.hparams.grid_x)
+        x_hat       = pole_curve_calc2_torch(pole_class=self.hparams.pole_class, pole_params=y_hat, grid_x=grid, device=x.device)
+        
+        # Parameters MSE 
+        params_mse = F.mse_loss(y_hat, y) 
+        self.log('test_params_mse_nostd', params_mse, on_step=False, on_epoch=True) 
+        
+        # Parameter_i MSE 
+        for i in range(y.shape[1]):
+            params_i_mse = F.mse_loss(y_hat[:,i], y[:,i]) 
+            self.log('test_params_{}_mse_nostd'.format(i), params_i_mse, on_step=False, on_epoch=True)
+        
+        # Parameters MAE
+        params_mae = F.l1_loss(y_hat, y) 
+        self.log('test_params_mae_nostd', params_mae, on_step=False, on_epoch=True)
+        
+        # Parameter_i MAE
+        for i in range(y.shape[1]):
+            params_i_mae = F.l1_loss(y_hat[:,i], y[:,i]) 
+            self.log('test_params_{}_mae_nostd'.format(i), params_i_mae, on_step=False, on_epoch=True)
+        
+        # Reconstruction MSE
+        reconstruction_mse = F.mse_loss(x_hat, x) 
+        self.log('reconstruction_mse_nostd', reconstruction_mse, on_step=False, on_epoch=True)
+        
+        # Reconstruction MAE
+        reconstruction_mae = F.l1_loss(x_hat, x) 
+        self.log('reconstruction_mae_nostd', reconstruction_mae, on_step=False, on_epoch=True)
+        #######################################################################
+        #######################################################################
 
-        # Loss to be used for testing:
-        test_loss = parameter_loss + 1e-100*reconstruction_loss
-        self.log('test_loss', test_loss, on_step=False, on_epoch=True) 
-
-        return test_loss
+        return loss
 
     def configure_optimizers(self):
         if self.hparams.optimizer == 'Adam':
@@ -539,11 +469,80 @@ class Pole_Regressor(LightningModule):
         elif self.hparams.optimizer == 'SGD':
             optimizer = optim.SGD(self.parameters(), lr=self.hparams.learning_rate, weight_decay=self.hparams.weight_decay)
         return {"optimizer": optimizer}
-
-
-
-
-
+    
+    def apply_boundaries(self, x):
+        if self.boundary_setup_finished == False:
+            # Get lower and upper bounds: 
+            re_max = self.hparams.re_max
+            re_min = float('-inf')
+            im_max = float('inf')
+            im_min = float('-inf')
+            coeff_re_max = float('inf')
+            coeff_im_max = float('inf')
+            if self.hparams.pole_class == 0:
+                max_params = torch.Tensor([[re_max],[coeff_re_max]])
+                min_params = torch.Tensor([[re_min],[-coeff_re_max]])
+                min_params = torch.transpose(torch.tile(min_params, (1,len(x))),1,0)
+                max_params = torch.transpose(torch.tile(max_params, (1,len(x))),1,0)
+            elif self.hparams.pole_class == 1:
+                max_params = torch.Tensor([[re_max],[im_max],[coeff_re_max],[coeff_im_max]])
+                min_params = torch.Tensor([[re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
+                min_params = torch.transpose(torch.tile(min_params, (1,len(x))),1,0)
+                max_params = torch.transpose(torch.tile(max_params, (1,len(x))),1,0)
+            elif self.hparams.pole_class == 2:
+                max_params = torch.Tensor([[re_max],[coeff_re_max]])
+                min_params = torch.Tensor([[re_min],[-coeff_re_max]])
+                min_params = torch.transpose(torch.tile(min_params, (2,len(x))),1,0)
+                max_params = torch.transpose(torch.tile(max_params, (2,len(x))),1,0)
+            elif self.hparams.pole_class == 3:
+                max_params = torch.Tensor([[re_max],[coeff_re_max], [re_max],[im_max],[coeff_re_max],[coeff_im_max]])
+                min_params = torch.Tensor([[re_min],[-coeff_re_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
+                min_params = torch.transpose(torch.tile(min_params, (1,len(x))),1,0)
+                max_params = torch.transpose(torch.tile(max_params, (1,len(x))),1,0)
+            elif self.hparams.pole_class == 4:
+                max_params = torch.Tensor([[re_max],[im_max],[coeff_re_max],[coeff_im_max]])
+                min_params = torch.Tensor([[re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
+                min_params = torch.transpose(torch.tile(min_params, (2,len(x))),1,0)
+                max_params = torch.transpose(torch.tile(max_params, (2,len(x))),1,0)
+            elif self.hparams.pole_class == 5:
+                max_params = torch.Tensor([[re_max],[coeff_re_max]])
+                min_params = torch.Tensor([[re_min],[-coeff_re_max]])
+                min_params = torch.transpose(torch.tile(min_params, (3,len(x))),1,0)
+                max_params = torch.transpose(torch.tile(max_params, (3,len(x))),1,0)
+            elif self.hparams.pole_class == 6:
+                max_params = torch.Tensor([[re_max],[coeff_re_max],  [re_max],[coeff_re_max],  [re_max],[im_max],[coeff_re_max],[coeff_im_max]])
+                min_params = torch.Tensor([[re_min],[-coeff_re_max], [re_min],[-coeff_re_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
+                min_params = torch.transpose(torch.tile(min_params, (1,len(x))),1,0)
+                max_params = torch.transpose(torch.tile(max_params, (1,len(x))),1,0)
+            elif self.hparams.pole_class == 7:
+                max_params = torch.Tensor([[re_max],[coeff_re_max],  [re_max],[im_max],[coeff_re_max],[coeff_im_max],   [re_max],[im_max],[coeff_re_max],[coeff_im_max]])
+                min_params = torch.Tensor([[re_min],[-coeff_re_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
+                min_params = torch.transpose(torch.tile(min_params, (1,len(x))),1,0)
+                max_params = torch.transpose(torch.tile(max_params, (1,len(x))),1,0)
+            elif self.hparams.pole_class == 8:
+                max_params = torch.Tensor([[re_max],[im_max],[coeff_re_max],[coeff_im_max]])
+                min_params = torch.Tensor([[re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
+                min_params = torch.transpose(torch.tile(min_params, (3,len(x))),1,0)
+                max_params = torch.transpose(torch.tile(max_params, (3,len(x))),1,0)
+            else:
+                sys.exit("Undefined label.")    
+                
+            #Apply the standardization to the boundaries
+            variances_y = torch.from_numpy(np.load(os.path.join(self.hparams.std_path, 'variances_params.npy'), allow_pickle=True).astype('float32'))
+            scales_y    = (torch.sqrt(variances_y))
+            means_y     = torch.from_numpy(np.load(os.path.join(self.hparams.std_path, 'means_params.npy'), allow_pickle=True).astype('float32'))
+            min_params  = (min_params - torch.tile(means_y, (min_params.shape[0],1))) / torch.tile(scales_y, (min_params.shape[0],1))
+            max_params  = (max_params - torch.tile(means_y, (max_params.shape[0],1))) / torch.tile(scales_y, (max_params.shape[0],1))
+            
+            device      = x.device
+            self.min_params = min_params.to(device=device)
+            self.max_params = max_params.to(device=device)
+            self.boundary_setup_finished = True  
+            
+        # Apply boundaries
+        x = torch.maximum(x, self.min_params)
+        x = torch.minimum(x, self.max_params)
+        return x
 
 
 

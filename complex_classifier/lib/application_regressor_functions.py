@@ -29,7 +29,7 @@ def get_regressor_pred(data_y, model_path):
             There must additionally be a subdirectory called 'data' containing the standardization files called 
             "variances.npy" for the inputs and "variances_params.npy", "means_params.npy" for the outputs.
     
-    returns: ndarray of shape (m,k)
+    returns: ndarray of shape (l,m,k), where l is the number of trained models
         The predicted parameters are returned
     '''
     # Standardize input
@@ -49,7 +49,7 @@ def get_regressor_pred(data_y, model_path):
         
     # Remove standardization from output
     params_pred = rm_std_data(data=params_pred, std_path= os.path.join(model_path, 'data/'), 
-                               with_mean=True, name_var="variances_params.npy", name_mean="means_params.npy")[0]
+                               with_mean=True, name_var="variances_params.npy", name_mean="means_params.npy")#[0]
     return params_pred
 
 
@@ -80,6 +80,7 @@ def get_all_regressor_preds(data_y, model_path, regressor_subdirs):
     preds = []
     for subdir in regressor_subdirs:
         pred = get_regressor_pred(data_y=data_y, model_path=os.path.join(model_path, subdir + '/'))
+        pred = np.mean(pred, axis=0) # average over all models in /models
         preds.append(pred)
     return preds
 

@@ -23,7 +23,7 @@ standard_re = pd.read_csv(os.path.join(data_dir, "integration_gridpoints.csv")).
 standard_im = np.linspace(0., 0., num=len(standard_re))
 
 # Range of real pole positions:
-re_max = 0.5
+re_max = -0.1
 re_min = -10.
 
 # Range of imaginary pole positions (for cc pole pairs only):
@@ -123,7 +123,7 @@ num_runs_classifier           = 1
 ##############   Regressors   ################################################
 ##############################################################################
 # Class to be learned
-class_regressor = 0
+class_regressor = 8
 
 # Directories
 regressor_subdirs = ['0-1r',
@@ -193,8 +193,14 @@ epochs_regressor             = int(1e15)
 val_check_interval_regressor = 0.1
 # Early Stopping patience
 es_patience_regressor        = 20
-# Name of the loss function; Note, this is only for logging purposes, the actually used loss is not read from here
-loss_name_regressor = 'ParameterLoss + 1e-100*ReconstructionLoss'
+
+# Loss
+parameter_loss_type       = 'mse'
+reconstruction_loss_type  = 'mse'
+parameter_loss_coeff      = 1.0
+reconstruction_loss_coeff = 0.1
+loss_name_regressor = (str(parameter_loss_coeff) + '*parameter_loss_' + parameter_loss_type + ' + ' +
+                       str(reconstruction_loss_coeff) + '*reconstruction_loss_' + reconstruction_loss_type )
 
 # Regularization
 weight_decay_regressor = 0.0

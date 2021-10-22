@@ -59,8 +59,8 @@ def get_nnsc_pred(pole_class, grid_x, data_y,
     returns: ndarray of shape (k,)
         Optimized parameters of the chosen Pole Configuration/Class
     '''
-    # Get NN regressor_pred
-    pred_nn   = get_regressor_pred(data_y=data_y, model_path=model_path)[0]
+    # Get NN regressor_pred (average over all models in /models)
+    pred_nn   = np.mean(get_regressor_pred(data_y=data_y, model_path=model_path), axis=0)[0]
 
     # Scipy Fit
     pred_nnsc = get_scipy_pred(pole_class=pole_class, grid_x=grid_x, data_y=data_y, 

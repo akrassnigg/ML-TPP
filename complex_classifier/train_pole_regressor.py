@@ -14,9 +14,8 @@ from pytorch_lightning.loggers import WandbLogger
 
 from lib.pole_regressor import Pole_Regressor, PoleDataModule_Regressor
 
-from parameters import class_regressor
 from parameters import standard_re
-from parameters import data_dir_regressor, log_dir_regressor, models_dir_regressor
+from parameters import data_dir_regressor, models_dir_regressor
 from parameters import train_portion_regressor, val_portion_regressor, test_portion_regressor
 from parameters import architecture_regressor, in_features_regressor, out_features_regressor
 from parameters import hidden_dim_1_regressor, hidden_dim_2_regressor, hidden_dim_3_regressor, hidden_dim_4_regressor, hidden_dim_5_regressor, hidden_dim_6_regressor
@@ -34,6 +33,8 @@ from parameters import n_examples_regressor
 from parameters import num_runs_regressor
 from parameters import name_ckpt_regressor
 from parameters import class_regressor
+from parameters import parameter_loss_type, reconstruction_loss_type
+from parameters import parameter_loss_coeff, reconstruction_loss_coeff
 from parameters import loss_name_regressor
 
 
@@ -77,7 +78,12 @@ if __name__ == '__main__':
                 drop_prob_6   = drop_prob_6_regressor,
                 
                 learning_rate = learning_rate_regressor,
-                optimizer     = optimizer_regressor
+                optimizer     = optimizer_regressor,
+                
+                parameter_loss_type       = parameter_loss_type,
+                reconstruction_loss_type  = reconstruction_loss_type,
+                parameter_loss_coeff      = parameter_loss_coeff,
+                reconstruction_loss_coeff = reconstruction_loss_coeff
 		)
     
     other_hyperparameters = dict(
@@ -93,8 +99,8 @@ if __name__ == '__main__':
                 
                 val_check_interval = val_check_interval_regressor,
                 es_patience        = es_patience_regressor,
-
-                loss = loss_name_regressor
+                
+                loss_name_regressor = loss_name_regressor
 		)
     
     hyperparameters = {**net_hyperparameters, **other_hyperparameters}
