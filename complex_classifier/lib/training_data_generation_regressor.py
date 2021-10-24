@@ -14,9 +14,9 @@ import os
 
 from lib.get_params_functions import get_train_params
 from lib.curve_calc_functions import pole_curve_calc
-from lib.scipy_fit_functions import pole_config_organize
 from lib.standardization_functions import std_data_new, std_data
 from lib.training_data_generation_classifier import drop_small_poles_2, drop_near_poles
+from lib.pole_config_organize import pole_config_organize_abs as pole_config_organize
 
 
 def create_training_data_regressor(mode, length, pole_class, grid_x, data_dir, fact, dst_min,
@@ -66,8 +66,6 @@ def create_training_data_regressor(mode, length, pole_class, grid_x, data_dir, f
     params = params[drop_near_poles(pole_class=pole_class, pole_params=params, dst_min=dst_min)]
     # Calculate the pole curves
     out_re = pole_curve_calc(pole_class=pole_class, pole_params=params, grid_x=grid_x)
-    # Remove collumns, that contain only zeros (imaginary parts of real poles)
-    params = params[:,~np.all(params == 0, axis=0)]
     # Organize pole configurations
     params = pole_config_organize(pole_class=pole_class, pole_params=params)
 

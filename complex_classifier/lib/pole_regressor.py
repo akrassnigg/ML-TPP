@@ -22,8 +22,10 @@ import matplotlib.pyplot as plt
 
 from lib.training_data_generation_regressor import create_training_data_regressor
 from lib.architectures import FC6
-from lib.standardization_functions import rm_std_data, rm_std_data_torch
-from lib.curve_calc_functions_torch import pole_curve_calc2_torch
+from lib.standardization_functions import rm_std_data, rm_std_data_torch, std_data_torch
+from lib.curve_calc_functions_torch import pole_curve_calc_torch 
+from lib.pole_config_organize import pole_config_organize_abs as pole_config_organize
+from lib.pole_config_organize import pole_config_organize_abs
 
 
 ##############################################################################
@@ -263,16 +265,6 @@ class pole_reconstruction_loss(torch.nn.Module):
             self.grid_x = torch.from_numpy(self.grid_x)
         self.grid_x = self.grid_x.to(device=self.used_device).float()
         
-        # Prepare removal of std from x
-        variances_x   = torch.from_numpy(np.load(os.path.join(self.std_path, 'variances.npy'), allow_pickle=True).astype('float32'))
-        self.scales_x = (torch.sqrt(variances_x)).to(device=self.used_device)
-        
-        # Prepare removal of std from y_hat
-        variances_y   = torch.from_numpy(np.load(os.path.join(self.std_path, 'variances_params.npy'), allow_pickle=True).astype('float32'))
-        self.scales_y = (torch.sqrt(variances_y)).to(device=self.used_device)
-        means_y       = torch.from_numpy(np.load(os.path.join(self.std_path, 'means_params.npy'), allow_pickle=True).astype('float32'))
-        self.means_y  = means_y.to(device=self.used_device)
-        
         # Preparation finished
         self.prepared = True
         
@@ -280,14 +272,14 @@ class pole_reconstruction_loss(torch.nn.Module):
         if self.prepared == False:
             self.preparation(y_hat)
         
-        # Remove std from x   
-        x      = x * torch.tile(self.scales_x, (x.shape[0],1))
-        
-        # Remove std from y_hat
-        y_hat  = y_hat * torch.tile(self.scales_y, (y_hat.shape[0],1)) + torch.tile(self.means_y, (y_hat.shape[0],1))
-        
+        # Remove std from x and y_hat
+        x     = rm_std_data_torch(data=x, with_mean=False, 
+                                        std_path=self.std_path, name_var="variances.npy")
+        y_hat = rm_std_data_torch(data=y_hat, with_mean=True, 
+                                        std_path=self.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
+
         # Calculate Pole curves from y_hat
-        x_pred = pole_curve_calc2_torch(pole_class=self.pole_class, pole_params=y_hat, grid_x=self.grid_x, device=self.used_device)
+        x_pred = pole_curve_calc_torch(pole_class=self.pole_class, pole_params=y_hat, grid_x=self.grid_x, device=self.used_device)
         
         # Calculate MSE
         if self.loss_type == 'mse':
@@ -388,6 +380,7 @@ class Pole_Regressor(LightningModule):
     def forward(self, x):
         x = self.model(x)
         x = self.apply_boundaries(x)
+        x = self.pole_config_organize(x)
         return x
     
     def training_step(self, batch, batch_idx):
@@ -421,18 +414,22 @@ class Pole_Regressor(LightningModule):
         y_hat       = rm_std_data_torch(data=y_hat, with_mean=True, 
                                         std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
         
+        # sort poles by abs of position
+        y     = pole_config_organize_abs(pole_class=self.hparams.pole_class, pole_params=y)
+        y_hat = pole_config_organize_abs(pole_class=self.hparams.pole_class, pole_params=y_hat)
+        
         # Calculate predicted curve
         grid        = torch.from_numpy(self.hparams.grid_x)
-        x_hat       = pole_curve_calc2_torch(pole_class=self.hparams.pole_class, pole_params=y_hat, grid_x=grid, device=x.device)
+        x_hat       = pole_curve_calc_torch(pole_class=self.hparams.pole_class, pole_params=y_hat, grid_x=grid, device=x.device)
         
-        # Parameters MSE 
-        params_mse = F.mse_loss(y_hat, y) 
-        self.log('test_params_mse_nostd', params_mse, on_step=False, on_epoch=True) 
+        # Parameters RMSE 
+        params_rmse = torch.sqrt(F.mse_loss(y_hat, y)) 
+        self.log('test_params_rmse_nostd', params_rmse, on_step=False, on_epoch=True) 
         
-        # Parameter_i MSE 
+        # Parameter_i RMSE 
         for i in range(y.shape[1]):
-            params_i_mse = F.mse_loss(y_hat[:,i], y[:,i]) 
-            self.log('test_params_{}_mse_nostd'.format(i), params_i_mse, on_step=False, on_epoch=True)
+            params_i_rmse = torch.sqrt(F.mse_loss(y_hat[:,i], y[:,i])) 
+            self.log('test_params_{}_rmse_nostd'.format(i), params_i_rmse, on_step=False, on_epoch=True)
         
         # Parameters MAE
         params_mae = F.l1_loss(y_hat, y) 
@@ -445,11 +442,11 @@ class Pole_Regressor(LightningModule):
         
         # Reconstruction MSE
         reconstruction_mse = F.mse_loss(x_hat, x) 
-        self.log('reconstruction_mse_nostd', reconstruction_mse, on_step=False, on_epoch=True)
+        self.log('test_reconstruction_mse_nostd', reconstruction_mse, on_step=False, on_epoch=True)
         
         # Reconstruction MAE
         reconstruction_mae = F.l1_loss(x_hat, x) 
-        self.log('reconstruction_mae_nostd', reconstruction_mae, on_step=False, on_epoch=True)
+        self.log('test_reconstruction_mae_nostd', reconstruction_mae, on_step=False, on_epoch=True)
         #######################################################################
         #######################################################################
 
@@ -479,69 +476,43 @@ class Pole_Regressor(LightningModule):
             im_min = float('-inf')
             coeff_re_max = float('inf')
             coeff_im_max = float('inf')
-            if self.hparams.pole_class == 0:
-                max_params = torch.Tensor([[re_max],[coeff_re_max]])
-                min_params = torch.Tensor([[re_min],[-coeff_re_max]])
-                min_params = torch.transpose(torch.tile(min_params, (1,len(x))),1,0)
-                max_params = torch.transpose(torch.tile(max_params, (1,len(x))),1,0)
-            elif self.hparams.pole_class == 1:
-                max_params = torch.Tensor([[re_max],[im_max],[coeff_re_max],[coeff_im_max]])
-                min_params = torch.Tensor([[re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
-                min_params = torch.transpose(torch.tile(min_params, (1,len(x))),1,0)
-                max_params = torch.transpose(torch.tile(max_params, (1,len(x))),1,0)
-            elif self.hparams.pole_class == 2:
-                max_params = torch.Tensor([[re_max],[coeff_re_max]])
-                min_params = torch.Tensor([[re_min],[-coeff_re_max]])
-                min_params = torch.transpose(torch.tile(min_params, (2,len(x))),1,0)
-                max_params = torch.transpose(torch.tile(max_params, (2,len(x))),1,0)
-            elif self.hparams.pole_class == 3:
-                max_params = torch.Tensor([[re_max],[coeff_re_max], [re_max],[im_max],[coeff_re_max],[coeff_im_max]])
-                min_params = torch.Tensor([[re_min],[-coeff_re_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
-                min_params = torch.transpose(torch.tile(min_params, (1,len(x))),1,0)
-                max_params = torch.transpose(torch.tile(max_params, (1,len(x))),1,0)
-            elif self.hparams.pole_class == 4:
-                max_params = torch.Tensor([[re_max],[im_max],[coeff_re_max],[coeff_im_max]])
-                min_params = torch.Tensor([[re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
-                min_params = torch.transpose(torch.tile(min_params, (2,len(x))),1,0)
-                max_params = torch.transpose(torch.tile(max_params, (2,len(x))),1,0)
-            elif self.hparams.pole_class == 5:
-                max_params = torch.Tensor([[re_max],[coeff_re_max]])
-                min_params = torch.Tensor([[re_min],[-coeff_re_max]])
-                min_params = torch.transpose(torch.tile(min_params, (3,len(x))),1,0)
-                max_params = torch.transpose(torch.tile(max_params, (3,len(x))),1,0)
-            elif self.hparams.pole_class == 6:
-                max_params = torch.Tensor([[re_max],[coeff_re_max],  [re_max],[coeff_re_max],  [re_max],[im_max],[coeff_re_max],[coeff_im_max]])
-                min_params = torch.Tensor([[re_min],[-coeff_re_max], [re_min],[-coeff_re_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
-                min_params = torch.transpose(torch.tile(min_params, (1,len(x))),1,0)
-                max_params = torch.transpose(torch.tile(max_params, (1,len(x))),1,0)
-            elif self.hparams.pole_class == 7:
-                max_params = torch.Tensor([[re_max],[coeff_re_max],  [re_max],[im_max],[coeff_re_max],[coeff_im_max],   [re_max],[im_max],[coeff_re_max],[coeff_im_max]])
-                min_params = torch.Tensor([[re_min],[-coeff_re_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max], [re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
-                min_params = torch.transpose(torch.tile(min_params, (1,len(x))),1,0)
-                max_params = torch.transpose(torch.tile(max_params, (1,len(x))),1,0)
-            elif self.hparams.pole_class == 8:
-                max_params = torch.Tensor([[re_max],[im_max],[coeff_re_max],[coeff_im_max]])
-                min_params = torch.Tensor([[re_min],[im_min],[-coeff_re_max],[-coeff_im_max]])
-                min_params = torch.transpose(torch.tile(min_params, (3,len(x))),1,0)
-                max_params = torch.transpose(torch.tile(max_params, (3,len(x))),1,0)
+            max_params = torch.Tensor([re_max,im_max, coeff_re_max, coeff_im_max])
+            min_params = torch.Tensor([re_min,im_min,-coeff_re_max,-coeff_im_max])
+            if self.hparams.pole_class in [0,1]:
+                min_params = torch.tile(min_params, (len(x),1))
+                max_params = torch.tile(max_params, (len(x),1))
+            elif self.hparams.pole_class in [2,3,4]:
+                min_params = torch.tile(min_params, (len(x),2))
+                max_params = torch.tile(max_params, (len(x),2))
+            elif self.hparams.pole_class in [5,6,7,8]:
+                min_params = torch.tile(min_params, (len(x),3))
+                max_params = torch.tile(max_params, (len(x),3))
             else:
                 sys.exit("Undefined label.")    
                 
-            #Apply the standardization to the boundaries
-            variances_y = torch.from_numpy(np.load(os.path.join(self.hparams.std_path, 'variances_params.npy'), allow_pickle=True).astype('float32'))
-            scales_y    = (torch.sqrt(variances_y))
-            means_y     = torch.from_numpy(np.load(os.path.join(self.hparams.std_path, 'means_params.npy'), allow_pickle=True).astype('float32'))
-            min_params  = (min_params - torch.tile(means_y, (min_params.shape[0],1))) / torch.tile(scales_y, (min_params.shape[0],1))
-            max_params  = (max_params - torch.tile(means_y, (max_params.shape[0],1))) / torch.tile(scales_y, (max_params.shape[0],1))
-            
-            device      = x.device
-            self.min_params = min_params.to(device=device)
-            self.max_params = max_params.to(device=device)
+            #Apply the standardization to the boundaries 
+            min_params = std_data_torch(data=min_params, with_mean=True, 
+                              std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
+            max_params = std_data_torch(data=max_params, with_mean=True, 
+                              std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy') 
+            self.min_params = min_params.to(device=x.device)
+            self.max_params = max_params.to(device=x.device)
             self.boundary_setup_finished = True  
             
         # Apply boundaries
         x = torch.maximum(x, self.min_params)
         x = torch.minimum(x, self.max_params)
+        return x
+    
+    def pole_config_organize(self, x):
+        # Remove std
+        x = rm_std_data_torch(data=x, with_mean=True, 
+                              std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
+        # Sort Poles
+        x = pole_config_organize(pole_class=self.hparams.pole_class, pole_params=x)
+        # Apply std
+        x = std_data_torch(data=x, with_mean=True, 
+                              std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
         return x
 
 

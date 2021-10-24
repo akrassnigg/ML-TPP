@@ -107,8 +107,8 @@ if __name__ == '__main__':
     
     wandb.init(config=hyperparameters,
                entity="ml-tpp", project="pole_classifier",
-               group="Regressor Experiment: Reconstruction Loss",
-               notes=" ",
+               group="Regressor Experiment: Label Style",
+               notes="Try out differently styled regressor labels and compare test_acc.",
                tags = ["Regressor"])
 
     logger = WandbLogger() 

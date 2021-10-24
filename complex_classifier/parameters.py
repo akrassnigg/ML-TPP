@@ -123,7 +123,7 @@ num_runs_classifier           = 1
 ##############   Regressors   ################################################
 ##############################################################################
 # Class to be learned
-class_regressor = 8
+class_regressor = 7
 
 # Directories
 regressor_subdirs = ['0-1r',
@@ -174,7 +174,7 @@ test_portion_regressor  = 0.01
 # Network hyperparameters
 # ANN Architecture
 architecture_regressor = 'FC6'
-out_list               = [2,4,4,6,8,6,8,10,12]
+out_list               = [4,4,8,8,8,12,12,12,12]
 out_features_regressor = out_list[class_regressor]  # depends on the pole class
 in_features_regressor  = len(standard_re)
 hidden_dim_1_regressor = 32
