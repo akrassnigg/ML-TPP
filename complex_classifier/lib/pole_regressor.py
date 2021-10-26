@@ -479,14 +479,14 @@ class Pole_Regressor(LightningModule):
             max_params = torch.Tensor([re_max,im_max, coeff_re_max, coeff_im_max])
             min_params = torch.Tensor([re_min,im_min,-coeff_re_max,-coeff_im_max])
             if self.hparams.pole_class in [0,1]:
-                min_params = torch.tile(min_params, (len(x),1))
-                max_params = torch.tile(max_params, (len(x),1))
+                min_params = torch.tile(min_params, (1,1))
+                max_params = torch.tile(max_params, (1,1))
             elif self.hparams.pole_class in [2,3,4]:
-                min_params = torch.tile(min_params, (len(x),2))
-                max_params = torch.tile(max_params, (len(x),2))
+                min_params = torch.tile(min_params, (1,2))
+                max_params = torch.tile(max_params, (1,2))
             elif self.hparams.pole_class in [5,6,7,8]:
-                min_params = torch.tile(min_params, (len(x),3))
-                max_params = torch.tile(max_params, (len(x),3))
+                min_params = torch.tile(min_params, (1,3))
+                max_params = torch.tile(max_params, (1,3))
             else:
                 sys.exit("Undefined label.")    
                 
@@ -499,9 +499,12 @@ class Pole_Regressor(LightningModule):
             self.max_params = max_params.to(device=x.device)
             self.boundary_setup_finished = True  
             
+        min_params = torch.tile(self.min_params, (len(x),1))
+        max_params = torch.tile(self.max_params, (len(x),1))
+            
         # Apply boundaries
-        x = torch.maximum(x, self.min_params)
-        x = torch.minimum(x, self.max_params)
+        x = torch.maximum(x, min_params)
+        x = torch.minimum(x, max_params)
         return x
     
     def pole_config_organize(self, x):
