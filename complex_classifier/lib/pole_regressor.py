@@ -21,7 +21,7 @@ from pytorch_lightning.core import LightningModule
 import matplotlib.pyplot as plt
 
 from lib.training_data_generation_regressor import create_training_data_regressor
-from lib.architectures import FC6
+from lib.architectures import FC1, FC2, FC3, FC4, FC5, FC6
 from lib.standardization_functions import rm_std_data, rm_std_data_torch, std_data_torch
 from lib.curve_calc_functions_torch import pole_curve_calc_torch 
 from lib.pole_config_organize import pole_config_organize_abs as pole_config_organize
@@ -34,52 +34,20 @@ from lib.pole_config_organize import pole_config_organize_abs
 class PoleDataSet_Regressor(Dataset):
     """
     DataSet of the Pole Regressor
-    
-    pole_class: int
-        The class to be trained
-    
-    grid_x: numpy.ndarray of shape (n,) or (1,n)
-        Gridpoints, where the function/pole configuration shall be evaluated
-    
+
     data_dir: str
         Directory containing data files
     
     num_use_data: int
         How many of the available datapoints shall be used?
-    
-    num_epochs_use: int
-        After how many training epochs shall the data be refreshed?
-    
-    fact: numeric>=1
-        Drops parameter configureations, that contain poles, whose out_re is a factor fact smaller, than out_re of the other poles in the sample
         
-    dst_min: numeric>=0
-        Drops parameter configureations, that contain poles, whose positions are nearer to each other than dst_min (complex, euclidean norm)
-    
-    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: float
-        The parameter boundaries
+    use_indices: np.ndarray of shape (l,)
+        Index positions at which data_x shall be used
     """
-    def __init__(self, pole_class, grid_x, data_dir, num_use_data, num_epochs_use, fact, dst_min,
-                 re_max, re_min, im_max, im_min, 
-                 coeff_re_max, coeff_re_min, 
-                 coeff_im_max, coeff_im_min):
-        self.count      = 0  # counts the number of times __getitem__ was called
-        self.pole_class = pole_class
+    def __init__(self, data_dir, num_use_data, use_indices):
         self.data_dir   = data_dir
-        self.grid_x     = grid_x
-        self.num_epochs_use = num_epochs_use
-        self.fact       = fact
-        self.dst_min    = dst_min
-        self.re_max     = re_max
-        self.re_min     = re_min
-        self.im_max     = im_max
-        self.im_min     = im_min
-        self.coeff_re_max = coeff_re_max
-        self.coeff_re_min = coeff_re_min
-        self.coeff_im_max = coeff_im_max
-        self.coeff_im_min = coeff_im_min
 
-        self.data_X = np.load(os.path.join(data_dir, 'various_poles_data_regressor_x.npy'), allow_pickle=True).astype('float32')
+        self.data_X = np.load(os.path.join(data_dir, 'various_poles_data_regressor_x.npy'), allow_pickle=True).astype('float32')[:,use_indices]
         self.data_Y = np.load(os.path.join(data_dir, 'various_poles_data_regressor_y.npy'), allow_pickle=True).astype('float32')
             
         print("Checking shape of loaded data: X: ", np.shape(self.data_X))
@@ -100,44 +68,17 @@ class PoleDataSet_Regressor(Dataset):
             print("Checking shape of data: X Subset: ", np.shape(self.data_X))
             print("Checking shape of data: y Subset: ", np.shape(self.data_Y))
         
-    def update_dataset(self):
-        num_data = len(self)
-        
-        data_x, data_y = create_training_data_regressor(mode='update', length=num_data, pole_class=self.pole_class, 
-                         grid_x=self.grid_x, data_dir=self.data_dir, fact=self.fact, dst_min=self.dst_min,
-                         re_max=self.re_max, re_min=self.re_min, im_max=self.im_max, im_min=self.im_min, 
-                         coeff_re_max=self.coeff_re_max, coeff_re_min=self.coeff_re_min, 
-                         coeff_im_max=self.coeff_im_max, coeff_im_min=self.coeff_im_min)
-            
-        self.data_X = np.array(data_x, dtype='float32')
-        self.data_Y = np.array(data_y, dtype='float32')
-          
-        print("Checking shape of updated data: X: ", np.shape(self.data_X))
-        print("Checking shape of updated data: y: ", np.shape(self.data_Y))
-        
     def __len__(self):
         num_of_data_points = len(self.data_X)
         return num_of_data_points
 
     def __getitem__(self, idx):
-        
-        if self.count == self.num_epochs_use*len(self):
-            self.update_dataset()
-            self.count = 0
-        
-        self.count += 1
         return self.data_X[idx], self.data_Y[idx]
      
         
 class PoleDataModule_Regressor(pl.LightningDataModule):
     """
     DataModule of the Pole Regressor
-    
-    pole_class: int
-        The class to be trained
-    
-    grid_x: numpy.ndarray of shape (n,) or (1,n)
-        Gridpoints, where the function/pole configuration shall be evaluated
     
     data_dir: str
         Directory containing data files
@@ -148,52 +89,25 @@ class PoleDataModule_Regressor(pl.LightningDataModule):
     
     num_use_data: int
         How many of the available datapoints shall be used?
-    
-    num_epochs_use: int
-        After how many training epochs shall the data be refreshed?
-    
-    fact: numeric>=1
-        Drops parameter configureations, that contain poles, whose out_re is a factor fact smaller, than out_re of the other poles in the sample
         
-    dst_min: numeric>=0
-        Drops parameter configureations, that contain poles, whose positions are nearer to each other than dst_min (complex, euclidean norm)
-    
-    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: float
-        The parameter boundaries
+    use_indices: np.ndarray of shape (l,)
+        Index positions at which data_x shall be used
     """
-    def __init__(self, pole_class, grid_x, data_dir: str, batch_size: int, train_portion: float, validation_portion: float, test_portion: float,
-                 num_use_data, num_epochs_use, fact, dst_min,
-                 re_max, re_min, im_max, im_min, 
-                 coeff_re_max, coeff_re_min, 
-                 coeff_im_max, coeff_im_min):
+    def __init__(self, data_dir: str, batch_size: int, train_portion: float, validation_portion: float, test_portion: float,
+                 num_use_data, use_indices):
         super().__init__()
-        self.pole_class         = pole_class
-        self.grid_x             = grid_x
         self.data_dir           = data_dir
         self.batch_size         = batch_size
         self.train_portion      = train_portion
         self.validation_portion = validation_portion
         self.test_portion       = test_portion
-        self.num_use_data   = num_use_data
-        self.num_epochs_use = num_epochs_use
-        self.fact           = fact
-        self.dst_min        = dst_min
-        self.re_max     = re_max
-        self.re_min     = re_min
-        self.im_max     = im_max
-        self.im_min     = im_min
-        self.coeff_re_max = coeff_re_max
-        self.coeff_re_min = coeff_re_min
-        self.coeff_im_max = coeff_im_max
-        self.coeff_im_min = coeff_im_min
+        self.num_use_data       = num_use_data
+        self.use_indices        = use_indices
 
     def setup(self, stage):
-        all_data = PoleDataSet_Regressor(pole_class=self.pole_class, grid_x=self.grid_x, data_dir=self.data_dir, 
-                                         num_use_data=self.num_use_data, num_epochs_use = self.num_epochs_use,
-                                         fact=self.fact, dst_min=self.dst_min,
-                                         re_max=self.re_max, re_min=self.re_min, im_max=self.im_max, im_min=self.im_min, 
-                                         coeff_re_max=self.coeff_re_max, coeff_re_min=self.coeff_re_min, 
-                                         coeff_im_max=self.coeff_im_max, coeff_im_min=self.coeff_im_min)
+        all_data = PoleDataSet_Regressor(data_dir=self.data_dir, 
+                                         num_use_data=self.num_use_data,
+                                         use_indices=self.use_indices)
         
         num_data = len(all_data)
         print("Length of all_data: ", num_data)
@@ -244,48 +158,42 @@ class pole_reconstruction_loss(torch.nn.Module):
         The integration grid
         
     loss_type: str: 'mse' or 'l1'
+    
+    use_indices: np.ndarray of shape (l,) or default: 'all'
+        Index positions at which data_x shall be used, needed for standardization
         
     return: scalar torch.Tensor
         The MSE Reconstruction Loss
     '''
-    def __init__(self, pole_class, std_path, grid_x, loss_type):
+    def __init__(self, pole_class, std_path, grid_x, loss_type, use_indices = 'all'):
         super(pole_reconstruction_loss,self).__init__()
         self.pole_class = pole_class
         self.std_path   = std_path
         self.grid_x     = grid_x
-        self.prepared   = False
         self.loss_type  = loss_type
-        
-    def preparation(self, y_hat):
-        # Get device of Tensors 
-        self.used_device = y_hat.device
-        
-        # Prepare grid_x
-        if type(self.grid_x) == np.ndarray:
-            self.grid_x = torch.from_numpy(self.grid_x)
-        self.grid_x = self.grid_x.to(device=self.used_device).float()
-        
-        # Preparation finished
-        self.prepared = True
+        self.use_indices = use_indices
         
     def forward(self,y_hat, x):
-        if self.prepared == False:
-            self.preparation(y_hat)
-        
         # Remove std from x and y_hat
-        x     = rm_std_data_torch(data=x, with_mean=False, 
-                                        std_path=self.std_path, name_var="variances.npy")
+        x     = rm_std_data_torch(data=x, with_mean=True, 
+                                        std_path=self.std_path, name_var="variances.npy", name_mean='means.npy',
+                                        use_indices=self.use_indices)[:,-len(self.grid_x):]
         y_hat = rm_std_data_torch(data=y_hat, with_mean=True, 
                                         std_path=self.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
 
         # Calculate Pole curves from y_hat
-        x_pred = pole_curve_calc_torch(pole_class=self.pole_class, pole_params=y_hat, grid_x=self.grid_x, device=self.used_device)
+        x_pred = pole_curve_calc_torch(pole_class=self.pole_class, pole_params=y_hat, grid_x=self.grid_x, device=y_hat.device)
         
         # Calculate MSE
         if self.loss_type == 'mse':
             loss   = F.mse_loss(x_pred, x)
         elif self.loss_type == 'l1':
             loss   = F.l1_loss(x_pred, x)
+            
+        #plt.plot(x[0,:].cpu().detach().numpy())
+        #plt.plot(x_pred[0,:].cpu().detach().numpy())
+        #plt.show()
+            
         return loss
 
 
@@ -310,6 +218,9 @@ class Pole_Regressor(LightningModule):
     
     architecture, optimizer: strings
     
+    use_indices: np.ndarray of shape (l,) or default: 'all'
+        Index positions at which data_x shall be used, needed for standardization
+    
     additional kwargs are handed to the architecture class
     """
     def __init__(self, 
@@ -331,6 +242,8 @@ class Pole_Regressor(LightningModule):
                  parameter_loss_type, reconstruction_loss_type,
                  parameter_loss_coeff, reconstruction_loss_coeff,
                  
+                 use_indices = 'all',
+                 
                  # Regularization
                  weight_decay:  float = 0.0,
                  
@@ -348,13 +261,25 @@ class Pole_Regressor(LightningModule):
                  ):
         
         super().__init__()
+        
+        # prepare grid_x
+        if type(grid_x) == np.ndarray:
+            grid_x = torch.from_numpy(grid_x)
+        grid_x = grid_x.to(device=self.device).float()
+        
         self.save_hyperparameters()
         self.model = globals()[architecture](**kwargs)
-        self.Reconstruction_loss_mse = pole_reconstruction_loss(pole_class=pole_class, std_path=std_path, grid_x=grid_x, loss_type='mse')
-        self.Reconstruction_loss_l1  = pole_reconstruction_loss(pole_class=pole_class, std_path=std_path, grid_x=grid_x, loss_type='l1')
+        
+        self.Reconstruction_loss_mse = pole_reconstruction_loss(pole_class=pole_class, std_path=std_path, grid_x=self.hparams.grid_x, 
+                                                                loss_type='mse',
+                                                                use_indices=use_indices)
+        self.Reconstruction_loss_l1  = pole_reconstruction_loss(pole_class=pole_class, std_path=std_path, grid_x=self.hparams.grid_x, 
+                                                                loss_type='l1',
+                                                                use_indices=use_indices)
         self.Parameter_loss_mse      = nn.MSELoss()
         self.Parameter_loss_l1       = nn.L1Loss()
         
+        # prepare boundaries that are applied to ANN output
         self.boundary_setup_finished = False
         
     def losses(self, x, y, y_hat):
@@ -375,7 +300,7 @@ class Pole_Regressor(LightningModule):
         # loss that is used to train the network:
         loss                           = (parameter_loss_coeff*parameter_loss + 
                                           reconstruction_loss_coeff*reconstruction_loss)
-        return [parameter_loss, reconstruction_loss, loss]
+        return parameter_loss, reconstruction_loss, loss
  
     def forward(self, x):
         x = self.model(x)
@@ -385,21 +310,21 @@ class Pole_Regressor(LightningModule):
     
     def training_step(self, batch, batch_idx):
         x, y = batch      
-        y_hat = self(x)             
+        y_hat = self(x)          
         _, _, loss = self.losses(x=x,y=y,y_hat=y_hat)
         self.log('train_loss', loss, on_step=True, on_epoch=False) 
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self(x)     
+        y_hat = self(x)          
         _, _, loss = self.losses(x=x,y=y,y_hat=y_hat)
         self.log('val_loss', loss, on_step=False, on_epoch=True) 
         return loss
 
     def test_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self(x)
+        y_hat = self(x)      
         _, _, loss = self.losses(x=x,y=y,y_hat=y_hat)
         self.log('test_loss', loss, on_step=False, on_epoch=True) 
         
@@ -407,20 +332,20 @@ class Pole_Regressor(LightningModule):
         #######################################################################
         # Log Test losses without std (remove std)
         # Remove std from x, y and y_hat
-        x           = rm_std_data_torch(data=x, with_mean=False, 
-                                        std_path=self.hparams.std_path, name_var="variances.npy")
-        y           = rm_std_data_torch(data=y, with_mean=True, 
-                                        std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
-        y_hat       = rm_std_data_torch(data=y_hat, with_mean=True, 
-                                        std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
+        x     = rm_std_data_torch(data=x, with_mean=True, 
+                                  std_path=self.hparams.std_path, name_var="variances.npy", name_mean='means.npy',
+                                  use_indices=self.hparams.use_indices)[:,-len(self.hparams.grid_x):]
+        y     = rm_std_data_torch(data=y, with_mean=True, 
+                                  std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
+        y_hat = rm_std_data_torch(data=y_hat, with_mean=True, 
+                                  std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
         
         # sort poles by abs of position
         y     = pole_config_organize_abs(pole_class=self.hparams.pole_class, pole_params=y)
         y_hat = pole_config_organize_abs(pole_class=self.hparams.pole_class, pole_params=y_hat)
         
         # Calculate predicted curve
-        grid        = torch.from_numpy(self.hparams.grid_x)
-        x_hat       = pole_curve_calc_torch(pole_class=self.hparams.pole_class, pole_params=y_hat, grid_x=grid, device=x.device)
+        x_hat       = pole_curve_calc_torch(pole_class=self.hparams.pole_class, pole_params=y_hat, grid_x=self.hparams.grid_x, device=x.device)
         
         # Parameters RMSE 
         params_rmse = torch.sqrt(F.mse_loss(y_hat, y)) 

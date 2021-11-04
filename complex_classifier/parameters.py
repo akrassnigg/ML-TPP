@@ -59,9 +59,9 @@ dst_min_classifier = 0.0
 
 # Scipy curve_fit parameters
 # Fitting method
-method_classifier      = ['lm', 'dogbox', 'dogbox', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf'] 
+method_classifier      = ['lm', 'lm', 'lm', 'dogbox', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf'] 
 # Use parameter boundaries?
-with_bounds_classifier = [False, False, True, False, True, True, True, True, True, True, True, True, True, True] 
+with_bounds_classifier = [False, False, False, True, True, True, True, True, True, True, True, True, True, True] 
 # Initial guess of parameters
 p0_classifier          = ['random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random'] 
 # How many times shall we try to fit the data? Note: Values>1 only make sense if p0='random'
@@ -145,7 +145,7 @@ models_dir_regressor = dir_regressor + 'models/'
 ############### Data Creation ################
 ##############################################
 # Number of data points
-n_examples_regressor = 1000000
+n_examples_regressor = 30000
 
 # Properties of drop_small_poles and drop_near_poles
 # Shall small poles be dropped; set to very large value to not drop any samples
@@ -153,40 +153,55 @@ fact_regressor    = np.inf
 # Shall samples with close poles be dropped; set to 0 to not drop any samples
 dst_min_regressor = 0.0   
 
+# Scipy curve_fit parameters
+# Fitting method
+method_regressor      = ['lm', 'lm', 'lm', 'dogbox', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf',    'trf', 'trf'] 
+# Use parameter boundaries?
+with_bounds_regressor = [False, False, False, True, True, True, True, True, True, True, True, True, True, True,    False, False] 
+# Initial guess of parameters
+p0_regressor          = ['random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random',    'random', 'random'] 
+# How many times shall we try to fit the data? Note: Values>1 only make sense if p0='random'
+num_tries_regressor   = [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,    10, 10]  
+# ~ Maximal number of optimization steps
+maxfev_regressor      = [100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000,    100000, 100000]
+# Convergence parameter: can be a single int or a list of ints, one for each class (->list of lists)
+xtol_regressor        = [1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8,    1e-8, 1e-8] 
+
 ##############################################
 ###############   Training   #################
 ##############################################
-# Number of data points to be used: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
-num_use_data_regressor = 0
-# After how many epochs shall the data be updated
-num_epochs_use_regressor     = int(1e15)  
-
 # Training mode: 0: start from scratch, 1: resume training from checkpoint
 training_step_regressor      = 0 
 # Name of the ckpt to resume from (must be inside models folder of the regressor)
 name_ckpt_regressor          = 'name.ckpt' 
 
 # Data split
-train_portion_regressor = 0.98
-val_portion_regressor   = 0.01
-test_portion_regressor  = 0.01
+train_portion_regressor = 0.8
+val_portion_regressor   = 0.1
+test_portion_regressor  = 0.1
 
 # Network hyperparameters
 # ANN Architecture
 architecture_regressor = 'FC6'
 out_list               = [4,4,8,8,8,12,12,12,12]
 out_features_regressor = out_list[class_regressor]  # depends on the pole class
-in_features_regressor  = len(standard_re)
 hidden_dim_1_regressor = 32
-hidden_dim_2_regressor = hidden_dim_1_regressor
-hidden_dim_3_regressor = hidden_dim_2_regressor
-hidden_dim_4_regressor = hidden_dim_3_regressor
-hidden_dim_5_regressor = hidden_dim_4_regressor
-hidden_dim_6_regressor = hidden_dim_5_regressor 
+hidden_dim_2_regressor = 32
+hidden_dim_3_regressor = 32
+hidden_dim_4_regressor = 32
+hidden_dim_5_regressor = 32
+hidden_dim_6_regressor = 32
+
+# Number of data points to be used: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
+num_use_data_regressor = 0
+# Indices of data_x that shall be used to train the regressor
+use_indices_regressor  = np.hstack([   np.arange((out_features_regressor+1)*0, (out_features_regressor+1)*2),   np.arange((out_features_regressor+1)*3, (out_features_regressor+1)*4),   np.arange((out_features_regressor+1)*16, (out_features_regressor+1)*16+64)  ])
+input_name_regressor   = 'lmx2+dogbox_wb=T+out_re'
+in_features_regressor  = len(use_indices_regressor)
 
 # Training hyperparameters
 optimizer_regressor          = 'Adam'
-batch_size_regressor         = 1000
+batch_size_regressor         = 32
 learning_rate_regressor      = 1e-3   
 # Maximal number of epochs
 epochs_regressor             = int(1e15)
@@ -198,7 +213,7 @@ es_patience_regressor        = 20
 parameter_loss_type       = 'mse'
 reconstruction_loss_type  = 'mse'
 parameter_loss_coeff      = 1.0
-reconstruction_loss_coeff = 0.1
+reconstruction_loss_coeff = 0.0
 loss_name_regressor = (str(parameter_loss_coeff) + '*parameter_loss_' + parameter_loss_type + ' + ' +
                        str(reconstruction_loss_coeff) + '*reconstruction_loss_' + reconstruction_loss_type )
 

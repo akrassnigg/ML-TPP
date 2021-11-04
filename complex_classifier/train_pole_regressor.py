@@ -25,7 +25,6 @@ from parameters import num_use_data_regressor
 from parameters import drop_prob_1_regressor, drop_prob_2_regressor, drop_prob_3_regressor
 from parameters import drop_prob_4_regressor, drop_prob_5_regressor, drop_prob_6_regressor
 from parameters import optimizer_regressor
-from parameters import num_epochs_use_regressor
 from parameters import val_check_interval_regressor, es_patience_regressor
 from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
 from parameters import fact_regressor, dst_min_regressor
@@ -36,6 +35,8 @@ from parameters import class_regressor
 from parameters import parameter_loss_type, reconstruction_loss_type
 from parameters import parameter_loss_coeff, reconstruction_loss_coeff
 from parameters import loss_name_regressor
+from parameters import p0_regressor, method_regressor, maxfev_regressor, num_tries_regressor, with_bounds_regressor, xtol_regressor
+from parameters import use_indices_regressor, input_name_regressor
 
 
 ##############################################################################
@@ -83,32 +84,43 @@ if __name__ == '__main__':
                 parameter_loss_type       = parameter_loss_type,
                 reconstruction_loss_type  = reconstruction_loss_type,
                 parameter_loss_coeff      = parameter_loss_coeff,
-                reconstruction_loss_coeff = reconstruction_loss_coeff
+                reconstruction_loss_coeff = reconstruction_loss_coeff,
+                
+                use_indices               = use_indices_regressor
 		)
     
     other_hyperparameters = dict(
-                fact_regressor    = fact_regressor,
-                dst_min_regressor = dst_min_regressor,
+                fact_regressor          = fact_regressor,
+                dst_min_regressor       = dst_min_regressor,
                 
                 n_examples_regressor    = n_examples_regressor,
                 num_use_data_regressor  = num_use_data_regressor,
                 train_portion_regressor = train_portion_regressor,
                 val_portion_regressor   = val_portion_regressor,
                 test_portion_regressor  = test_portion_regressor, 
-                batch_size               = batch_size_regressor,
+                batch_size              = batch_size_regressor,
                 
-                val_check_interval = val_check_interval_regressor,
-                es_patience        = es_patience_regressor,
+                val_check_interval      = val_check_interval_regressor,
+                es_patience             = es_patience_regressor,
                 
-                loss_name_regressor = loss_name_regressor
+                loss_name_regressor     = loss_name_regressor,
+                
+                p0_regressor            = p0_regressor, 
+                method_regressor        = method_regressor, 
+                maxfev_regressor        = maxfev_regressor, 
+                num_tries_regressor     = num_tries_regressor, 
+                with_bounds_regressor   = with_bounds_regressor, 
+                xtol_regressor          = xtol_regressor,
+                
+                input_name_regressor    = input_name_regressor
 		)
     
     hyperparameters = {**net_hyperparameters, **other_hyperparameters}
     
     wandb.init(config=hyperparameters,
                entity="ml-tpp", project="pole_classifier",
-               group="Regressor Experiment: Label Style",
-               notes="Try out differently styled regressor labels and compare test_acc.",
+               group="Regressor Experiment: SCNN Input",
+               notes="Fit curve with Scipy -> use predicted parameters as NN Input.",
                tags = ["Regressor"])
 
     logger = WandbLogger() 
@@ -125,13 +137,9 @@ if __name__ == '__main__':
             model = Pole_Regressor.load_from_checkpoint(models_dir_regressor + name_ckpt_regressor,
                                                         **net_hyperparameters)
             
-        datamodule = PoleDataModule_Regressor(pole_class=class_regressor, grid_x=standard_re, data_dir=data_dir_regressor, batch_size=batch_size_regressor, 
+        datamodule = PoleDataModule_Regressor(data_dir=data_dir_regressor, batch_size=batch_size_regressor, 
                                 train_portion=train_portion_regressor, validation_portion=val_portion_regressor, test_portion=test_portion_regressor, 
-                                num_use_data=num_use_data_regressor, num_epochs_use=num_epochs_use_regressor,
-                                fact=fact_regressor, dst_min=dst_min_regressor,
-                                re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
-                                coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
-                                coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
+                                num_use_data=num_use_data_regressor, use_indices=use_indices_regressor)
         
         checkpoint_callback1 = pl.callbacks.ModelCheckpoint(
             dirpath = models_dir_regressor,
