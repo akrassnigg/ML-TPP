@@ -27,7 +27,6 @@ from parameters import drop_prob_4_regressor, drop_prob_5_regressor, drop_prob_6
 from parameters import optimizer_regressor
 from parameters import val_check_interval_regressor, es_patience_regressor
 from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
-from parameters import fact_regressor, dst_min_regressor
 from parameters import n_examples_regressor
 from parameters import num_runs_regressor
 from parameters import name_ckpt_regressor
@@ -35,8 +34,6 @@ from parameters import class_regressor
 from parameters import parameter_loss_type, reconstruction_loss_type
 from parameters import parameter_loss_coeff, reconstruction_loss_coeff
 from parameters import loss_name_regressor
-from parameters import p0_regressor, method_regressor, maxfev_regressor, num_tries_regressor, with_bounds_regressor, xtol_regressor
-from parameters import use_indices_regressor, input_name_regressor
 
 
 ##############################################################################
@@ -84,15 +81,10 @@ if __name__ == '__main__':
                 parameter_loss_type       = parameter_loss_type,
                 reconstruction_loss_type  = reconstruction_loss_type,
                 parameter_loss_coeff      = parameter_loss_coeff,
-                reconstruction_loss_coeff = reconstruction_loss_coeff,
-                
-                use_indices               = use_indices_regressor
+                reconstruction_loss_coeff = reconstruction_loss_coeff
 		)
     
     other_hyperparameters = dict(
-                fact_regressor          = fact_regressor,
-                dst_min_regressor       = dst_min_regressor,
-                
                 n_examples_regressor    = n_examples_regressor,
                 num_use_data_regressor  = num_use_data_regressor,
                 train_portion_regressor = train_portion_regressor,
@@ -103,24 +95,15 @@ if __name__ == '__main__':
                 val_check_interval      = val_check_interval_regressor,
                 es_patience             = es_patience_regressor,
                 
-                loss_name_regressor     = loss_name_regressor,
-                
-                p0_regressor            = p0_regressor, 
-                method_regressor        = method_regressor, 
-                maxfev_regressor        = maxfev_regressor, 
-                num_tries_regressor     = num_tries_regressor, 
-                with_bounds_regressor   = with_bounds_regressor, 
-                xtol_regressor          = xtol_regressor,
-                
-                input_name_regressor    = input_name_regressor
+                loss_name_regressor     = loss_name_regressor
 		)
     
     hyperparameters = {**net_hyperparameters, **other_hyperparameters}
     
     wandb.init(config=hyperparameters,
                entity="ml-tpp", project="pole_classifier",
-               group="Regressor Experiment: SCNN Input",
-               notes="Fit curve with Scipy -> use predicted parameters as NN Input.",
+               group="Regressor Experiment: Dual NNSC",
+               notes="",
                tags = ["Regressor"])
 
     logger = WandbLogger() 
@@ -139,7 +122,7 @@ if __name__ == '__main__':
             
         datamodule = PoleDataModule_Regressor(data_dir=data_dir_regressor, batch_size=batch_size_regressor, 
                                 train_portion=train_portion_regressor, validation_portion=val_portion_regressor, test_portion=test_portion_regressor, 
-                                num_use_data=num_use_data_regressor, use_indices=use_indices_regressor)
+                                num_use_data=num_use_data_regressor)
         
         checkpoint_callback1 = pl.callbacks.ModelCheckpoint(
             dirpath = models_dir_regressor,
@@ -159,7 +142,6 @@ if __name__ == '__main__':
         
         early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=es_patience_regressor, mode="min")
         
-        
         trainer = pl.Trainer(
             logger=logger,
             val_check_interval=val_check_interval_regressor,
@@ -175,6 +157,8 @@ if __name__ == '__main__':
     test_loss_averaged /= num_runs
     if num_runs > 1:
         wandb.log({'test_loss_averaged': test_loss_averaged})
+            
+        
         
         
         

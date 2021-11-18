@@ -144,7 +144,7 @@ def std_data_torch(data, with_mean, std_path, name_var="variances.npy", name_mea
     return data
 
 
-def rm_std_data_torch(data, with_mean, std_path, name_var="variances.npy", name_mean="means.npy", use_indices='all'):
+def rm_std_data_torch(data, with_mean, std_path, name_var="variances.npy", name_mean="means.npy"):
     '''
     Remove standardization from data using saved means and variances
     
@@ -160,25 +160,17 @@ def rm_std_data_torch(data, with_mean, std_path, name_var="variances.npy", name_
     name_var, name_mean: str, default="variances.npy", "means.npy"
         Names of the variances and means files
         
-    use_indices: np.ndarray of shape (n,), or 'all': default, all are used
-        Index positions of means and variances file that shall be used
-        
     returns: torch.Tensor of shape (m,n), where m is the number of samples
         The transformed samples are returned
     '''
     data = torch.atleast_2d(data)
     used_device = data.device
     
-    if type(use_indices) == str and use_indices=='all':
-        use_indices = np.arange(data.shape[1])
-    
     variances = torch.from_numpy(np.load(os.path.join(std_path, name_var), allow_pickle=True).astype('float32'))
-    variances = variances[use_indices]
     scales    = (torch.sqrt(variances)).to(device=used_device)
 
     if with_mean:
         means = torch.from_numpy(np.load(os.path.join(std_path, name_mean), allow_pickle=True).astype('float32'))
-        means = means[use_indices]
         means = means.to(device=used_device)
         data  = data * torch.tile(scales, (data.shape[0],1)) + torch.tile(means, (data.shape[0],1))
     else:

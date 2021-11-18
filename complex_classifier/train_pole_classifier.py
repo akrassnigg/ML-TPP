@@ -28,7 +28,6 @@ from parameters import weight_decay_classifier, batch_size_classifier, learning_
 from parameters import data_dir_classifier, log_dir_classifier, models_dir_classifier
 from parameters import num_use_data_classifier, n_examples_classifier
 from parameters import re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min
-from parameters import fact_classifier, dst_min_classifier
 from parameters import xtol_classifier
 from parameters import num_runs_classifier
 from parameters import optimizer_classifier
@@ -109,8 +108,6 @@ if __name__ == '__main__':
                 coeff_im_max = coeff_im_max, 
                 coeff_im_min = coeff_im_min,
 
-                fact_classifier    = fact_classifier,
-                dst_min_classifier = dst_min_classifier,
                 xtol               = xtol_classifier,
                 
                 n_examples_classifier    = n_examples_classifier,

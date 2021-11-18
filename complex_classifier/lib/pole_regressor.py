@@ -20,13 +20,15 @@ import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
 import matplotlib.pyplot as plt
 
-from lib.training_data_generation_regressor import create_training_data_regressor
 from lib.architectures import FC1, FC2, FC3, FC4, FC5, FC6
-from lib.standardization_functions import rm_std_data, rm_std_data_torch, std_data_torch
-from lib.curve_calc_functions_torch import pole_curve_calc_torch 
-from lib.pole_config_organize import pole_config_organize_abs as pole_config_organize
-from lib.pole_config_organize import pole_config_organize_abs
+from lib.standardization_functions import rm_std_data_torch, std_data_torch
 
+from lib.curve_calc_functions_torch import pole_curve_calc2_torch_dual as pole_curve_calc
+from lib.pole_config_organize import pole_config_organize_abs2_dual as pole_config_organize
+
+from lib.pole_config_organize import add_zero_imag_parts_dual_torch
+from lib.pole_config_organize import pole_config_organize_abs_dual
+from lib.curve_calc_functions_torch import pole_curve_calc_torch_dual
 
 ##############################################################################
 ###################   Data-related Classes   #################################
@@ -40,14 +42,11 @@ class PoleDataSet_Regressor(Dataset):
     
     num_use_data: int
         How many of the available datapoints shall be used?
-        
-    use_indices: np.ndarray of shape (l,)
-        Index positions at which data_x shall be used
     """
-    def __init__(self, data_dir, num_use_data, use_indices):
+    def __init__(self, data_dir, num_use_data):
         self.data_dir   = data_dir
 
-        self.data_X = np.load(os.path.join(data_dir, 'various_poles_data_regressor_x.npy'), allow_pickle=True).astype('float32')[:,use_indices]
+        self.data_X = np.load(os.path.join(data_dir, 'various_poles_data_regressor_x.npy'), allow_pickle=True).astype('float32')
         self.data_Y = np.load(os.path.join(data_dir, 'various_poles_data_regressor_y.npy'), allow_pickle=True).astype('float32')
             
         print("Checking shape of loaded data: X: ", np.shape(self.data_X))
@@ -89,12 +88,9 @@ class PoleDataModule_Regressor(pl.LightningDataModule):
     
     num_use_data: int
         How many of the available datapoints shall be used?
-        
-    use_indices: np.ndarray of shape (l,)
-        Index positions at which data_x shall be used
     """
     def __init__(self, data_dir: str, batch_size: int, train_portion: float, validation_portion: float, test_portion: float,
-                 num_use_data, use_indices):
+                 num_use_data):
         super().__init__()
         self.data_dir           = data_dir
         self.batch_size         = batch_size
@@ -102,12 +98,10 @@ class PoleDataModule_Regressor(pl.LightningDataModule):
         self.validation_portion = validation_portion
         self.test_portion       = test_portion
         self.num_use_data       = num_use_data
-        self.use_indices        = use_indices
 
     def setup(self, stage):
         all_data = PoleDataSet_Regressor(data_dir=self.data_dir, 
-                                         num_use_data=self.num_use_data,
-                                         use_indices=self.use_indices)
+                                         num_use_data=self.num_use_data)
         
         num_data = len(all_data)
         print("Length of all_data: ", num_data)
@@ -158,31 +152,26 @@ class pole_reconstruction_loss(torch.nn.Module):
         The integration grid
         
     loss_type: str: 'mse' or 'l1'
-    
-    use_indices: np.ndarray of shape (l,) or default: 'all'
-        Index positions at which data_x shall be used, needed for standardization
         
     return: scalar torch.Tensor
         The MSE Reconstruction Loss
     '''
-    def __init__(self, pole_class, std_path, grid_x, loss_type, use_indices = 'all'):
+    def __init__(self, pole_class, std_path, grid_x, loss_type):
         super(pole_reconstruction_loss,self).__init__()
         self.pole_class = pole_class
         self.std_path   = std_path
         self.grid_x     = grid_x
         self.loss_type  = loss_type
-        self.use_indices = use_indices
         
     def forward(self,y_hat, x):
         # Remove std from x and y_hat
-        x     = rm_std_data_torch(data=x, with_mean=True, 
-                                        std_path=self.std_path, name_var="variances.npy", name_mean='means.npy',
-                                        use_indices=self.use_indices)[:,-len(self.grid_x):]
+        x     = rm_std_data_torch(data=x, with_mean=False, 
+                                        std_path=self.std_path, name_var="variances.npy")
         y_hat = rm_std_data_torch(data=y_hat, with_mean=True, 
                                         std_path=self.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
 
         # Calculate Pole curves from y_hat
-        x_pred = pole_curve_calc_torch(pole_class=self.pole_class, pole_params=y_hat, grid_x=self.grid_x, device=y_hat.device)
+        x_pred = pole_curve_calc(pole_class=self.pole_class, pole_params=y_hat, grid_x=self.grid_x, device=y_hat.device)
         
         # Calculate MSE
         if self.loss_type == 'mse':
@@ -218,9 +207,6 @@ class Pole_Regressor(LightningModule):
     
     architecture, optimizer: strings
     
-    use_indices: np.ndarray of shape (l,) or default: 'all'
-        Index positions at which data_x shall be used, needed for standardization
-    
     additional kwargs are handed to the architecture class
     """
     def __init__(self, 
@@ -241,8 +227,6 @@ class Pole_Regressor(LightningModule):
                  # Specify the loss
                  parameter_loss_type, reconstruction_loss_type,
                  parameter_loss_coeff, reconstruction_loss_coeff,
-                 
-                 use_indices = 'all',
                  
                  # Regularization
                  weight_decay:  float = 0.0,
@@ -271,11 +255,9 @@ class Pole_Regressor(LightningModule):
         self.model = globals()[architecture](**kwargs)
         
         self.Reconstruction_loss_mse = pole_reconstruction_loss(pole_class=pole_class, std_path=std_path, grid_x=self.hparams.grid_x, 
-                                                                loss_type='mse',
-                                                                use_indices=use_indices)
+                                                                loss_type='mse')
         self.Reconstruction_loss_l1  = pole_reconstruction_loss(pole_class=pole_class, std_path=std_path, grid_x=self.hparams.grid_x, 
-                                                                loss_type='l1',
-                                                                use_indices=use_indices)
+                                                                loss_type='l1')
         self.Parameter_loss_mse      = nn.MSELoss()
         self.Parameter_loss_l1       = nn.L1Loss()
         
@@ -300,7 +282,7 @@ class Pole_Regressor(LightningModule):
         # loss that is used to train the network:
         loss                           = (parameter_loss_coeff*parameter_loss + 
                                           reconstruction_loss_coeff*reconstruction_loss)
-        return parameter_loss, reconstruction_loss, loss
+        return [parameter_loss, reconstruction_loss, loss]
  
     def forward(self, x):
         x = self.model(x)
@@ -310,21 +292,21 @@ class Pole_Regressor(LightningModule):
     
     def training_step(self, batch, batch_idx):
         x, y = batch      
-        y_hat = self(x)          
+        y_hat = self(x)             
         _, _, loss = self.losses(x=x,y=y,y_hat=y_hat)
         self.log('train_loss', loss, on_step=True, on_epoch=False) 
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self(x)          
+        y_hat = self(x)     
         _, _, loss = self.losses(x=x,y=y,y_hat=y_hat)
         self.log('val_loss', loss, on_step=False, on_epoch=True) 
         return loss
 
     def test_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self(x)      
+        y_hat = self(x)
         _, _, loss = self.losses(x=x,y=y,y_hat=y_hat)
         self.log('test_loss', loss, on_step=False, on_epoch=True) 
         
@@ -332,20 +314,22 @@ class Pole_Regressor(LightningModule):
         #######################################################################
         # Log Test losses without std (remove std)
         # Remove std from x, y and y_hat
-        x     = rm_std_data_torch(data=x, with_mean=True, 
-                                  std_path=self.hparams.std_path, name_var="variances.npy", name_mean='means.npy',
-                                  use_indices=self.hparams.use_indices)[:,-len(self.hparams.grid_x):]
+        x     = rm_std_data_torch(data=x, with_mean=False, 
+                                        std_path=self.hparams.std_path, name_var="variances.npy")
         y     = rm_std_data_torch(data=y, with_mean=True, 
-                                  std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
+                                        std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
         y_hat = rm_std_data_torch(data=y_hat, with_mean=True, 
-                                  std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
+                                        std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
         
+        #Add zero imaginary parts for real poles
+        y     = add_zero_imag_parts_dual_torch(pole_class=self.hparams.pole_class, pole_params=y)
+        y_hat = add_zero_imag_parts_dual_torch(pole_class=self.hparams.pole_class, pole_params=y_hat)
         # sort poles by abs of position
-        y     = pole_config_organize_abs(pole_class=self.hparams.pole_class, pole_params=y)
-        y_hat = pole_config_organize_abs(pole_class=self.hparams.pole_class, pole_params=y_hat)
+        y     = pole_config_organize_abs_dual(pole_class=self.hparams.pole_class, pole_params=y)
+        y_hat = pole_config_organize_abs_dual(pole_class=self.hparams.pole_class, pole_params=y_hat)
         
         # Calculate predicted curve
-        x_hat       = pole_curve_calc_torch(pole_class=self.hparams.pole_class, pole_params=y_hat, grid_x=self.hparams.grid_x, device=x.device)
+        x_hat       = pole_curve_calc_torch_dual(pole_class=self.hparams.pole_class, pole_params=y_hat, grid_x=self.hparams.grid_x, device=x.device)   
         
         # Parameters RMSE 
         params_rmse = torch.sqrt(F.mse_loss(y_hat, y)) 
@@ -401,8 +385,8 @@ class Pole_Regressor(LightningModule):
             im_min = float('-inf')
             coeff_re_max = float('inf')
             coeff_im_max = float('inf')
-            max_params = torch.Tensor([re_max,im_max, coeff_re_max, coeff_im_max])
-            min_params = torch.Tensor([re_min,im_min,-coeff_re_max,-coeff_im_max])
+            max_params = torch.Tensor([re_max,im_max, coeff_re_max, coeff_im_max, coeff_re_max, coeff_im_max])
+            min_params = torch.Tensor([re_min,im_min,-coeff_re_max,-coeff_im_max,-coeff_re_max,-coeff_im_max])
             if self.hparams.pole_class in [0,1]:
                 min_params = torch.tile(min_params, (1,1))
                 max_params = torch.tile(max_params, (1,1))
@@ -414,6 +398,26 @@ class Pole_Regressor(LightningModule):
                 max_params = torch.tile(max_params, (1,3))
             else:
                 sys.exit("Undefined label.")    
+                
+            # remove imag parts of real poles    
+            if   self.hparams.pole_class == 0:
+                max_params = max_params[:,[0,2,4]]
+                min_params = min_params[:,[0,2,4]]
+            elif self.hparams.pole_class == 2:
+                max_params = max_params[:,[0,2,4, 6,8,10]]
+                min_params = min_params[:,[0,2,4, 6,8,10]]
+            elif self.hparams.pole_class == 3:
+                max_params = max_params[:,[0,2,4, 6,7,8,9,10,11]]
+                min_params = min_params[:,[0,2,4, 6,7,8,9,10,11]]
+            elif self.hparams.pole_class == 5:
+                max_params = max_params[:,[0,2,4, 6,8,10, 12,14,16]]
+                min_params = min_params[:,[0,2,4, 6,8,10, 12,14,16]]
+            elif self.hparams.pole_class == 6:
+                max_params = max_params[:,[0,2,4, 6,8,10, 12,13,14,15,16,17]]
+                min_params = min_params[:,[0,2,4, 6,8,10, 12,13,14,15,16,17]]
+            elif self.hparams.pole_class == 7:
+                max_params = max_params[:,[0,2,4, 6,7,8,9,10,11, 12,13,14,15,16,17]]
+                min_params = min_params[:,[0,2,4, 6,7,8,9,10,11, 12,13,14,15,16,17]]
                 
             #Apply the standardization to the boundaries 
             min_params = std_data_torch(data=min_params, with_mean=True, 

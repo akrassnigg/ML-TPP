@@ -49,27 +49,21 @@ models_dir_classifier = dir_classifier + 'models/'
 ############### Data Creation ################
 ##############################################
 # Number of data points to be created: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class)
-n_examples_classifier = 10000
-
-# Properties of drop_small_poles and drop_near_poles
-# Shall small poles be dropped; set to very large value to not drop any samples
-fact_classifier    = np.inf  
-# Shall samples with close poles be dropped; set to 0 to not drop any samples
-dst_min_classifier = 0.0     
+n_examples_classifier = 100000
 
 # Scipy curve_fit parameters
 # Fitting method
-method_classifier      = ['lm', 'lm', 'lm', 'dogbox', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf'] 
+method_classifier      = [] #empty -> don't use SciPy
 # Use parameter boundaries?
-with_bounds_classifier = [False, False, False, True, True, True, True, True, True, True, True, True, True, True] 
+with_bounds_classifier = [] #empty -> don't use SciPy
 # Initial guess of parameters
-p0_classifier          = ['random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random'] 
+p0_classifier          = ['random' for i in range(len(method_classifier))] 
 # How many times shall we try to fit the data? Note: Values>1 only make sense if p0='random'
-num_tries_classifier   = [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10]  
+num_tries_classifier   = [10 for i in range(len(method_classifier))]  
 # ~ Maximal number of optimization steps
-maxfev_classifier      = [100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000]
+maxfev_classifier      = [1000000 for i in range(len(method_classifier))]
 # Convergence parameter: can be a single int or a list of ints, one for each class (->list of lists)
-xtol_classifier        = [1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8]  
+xtol_classifier        = [1e-8 for i in range(len(method_classifier))]  
 
 ##############################################
 ###############   Training   #################
@@ -77,8 +71,8 @@ xtol_classifier        = [1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 
 # Number of data points to be used: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
 num_use_data_classifier = 0
 # Indices of data_x that shall be used to train the classifier
-use_indices_classifier  = np.hstack([   np.arange(69*0, 69*7)  ])
-input_name_classifier   = 'lm+dogbox_b=F+dogbox_b=T+trf_b=F+trf_b=Tx3'
+use_indices_classifier  = np.hstack([   np.arange(0, len(standard_re)*2)  ])
+input_name_classifier   = 'out_re'
 
 # Data split
 train_portion_classifier = 0.8
@@ -87,15 +81,15 @@ test_portion_classifier  = 0.1
 
 # Network hyperparameters
 # ANN architecture
-architecture_classifier = 'FC3'
+architecture_classifier = 'FC6'
 in_features_classifier  = len(use_indices_classifier)
 out_features_classifier = 9
-hidden_dim_1_classifier = 8
-hidden_dim_2_classifier = 8
-hidden_dim_3_classifier = 8
-hidden_dim_4_classifier = 0
-hidden_dim_5_classifier = 0
-hidden_dim_6_classifier = 0
+hidden_dim_1_classifier = 32
+hidden_dim_2_classifier = 32
+hidden_dim_3_classifier = 32
+hidden_dim_4_classifier = 32
+hidden_dim_5_classifier = 32
+hidden_dim_6_classifier = 32
  
 # Training hyperparameters
 optimizer_classifier          = 'Adam'
@@ -145,63 +139,40 @@ models_dir_regressor = dir_regressor + 'models/'
 ############### Data Creation ################
 ##############################################
 # Number of data points
-n_examples_regressor = 30000
-
-# Properties of drop_small_poles and drop_near_poles
-# Shall small poles be dropped; set to very large value to not drop any samples
-fact_regressor    = np.inf  
-# Shall samples with close poles be dropped; set to 0 to not drop any samples
-dst_min_regressor = 0.0   
-
-# Scipy curve_fit parameters
-# Fitting method
-method_regressor      = ['lm', 'lm', 'lm', 'dogbox', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf', 'trf',    'trf', 'trf'] 
-# Use parameter boundaries?
-with_bounds_regressor = [False, False, False, True, True, True, True, True, True, True, True, True, True, True,    False, False] 
-# Initial guess of parameters
-p0_regressor          = ['random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random', 'random',    'random', 'random'] 
-# How many times shall we try to fit the data? Note: Values>1 only make sense if p0='random'
-num_tries_regressor   = [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,    10, 10]  
-# ~ Maximal number of optimization steps
-maxfev_regressor      = [100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000,    100000, 100000]
-# Convergence parameter: can be a single int or a list of ints, one for each class (->list of lists)
-xtol_regressor        = [1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8, 1e-8,    1e-8, 1e-8] 
+n_examples_regressor = 1000000
 
 ##############################################
 ###############   Training   #################
 ##############################################
+# Number of data points to be used: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
+num_use_data_regressor = 0
+
 # Training mode: 0: start from scratch, 1: resume training from checkpoint
 training_step_regressor      = 0 
 # Name of the ckpt to resume from (must be inside models folder of the regressor)
 name_ckpt_regressor          = 'name.ckpt' 
 
 # Data split
-train_portion_regressor = 0.8
-val_portion_regressor   = 0.1
-test_portion_regressor  = 0.1
+train_portion_regressor = 0.98
+val_portion_regressor   = 0.01
+test_portion_regressor  = 0.01
 
 # Network hyperparameters
 # ANN Architecture
 architecture_regressor = 'FC6'
-out_list               = [4,4,8,8,8,12,12,12,12]
+out_list               = [3,6, 6,9,12, 9,12,15,18]
 out_features_regressor = out_list[class_regressor]  # depends on the pole class
+in_features_regressor  = len(standard_re)*2
 hidden_dim_1_regressor = 32
-hidden_dim_2_regressor = 32
-hidden_dim_3_regressor = 32
-hidden_dim_4_regressor = 32
-hidden_dim_5_regressor = 32
-hidden_dim_6_regressor = 32
-
-# Number of data points to be used: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
-num_use_data_regressor = 0
-# Indices of data_x that shall be used to train the regressor
-use_indices_regressor  = np.hstack([   np.arange((out_features_regressor+1)*0, (out_features_regressor+1)*2),   np.arange((out_features_regressor+1)*3, (out_features_regressor+1)*4),   np.arange((out_features_regressor+1)*16, (out_features_regressor+1)*16+64)  ])
-input_name_regressor   = 'lmx2+dogbox_wb=T+out_re'
-in_features_regressor  = len(use_indices_regressor)
+hidden_dim_2_regressor = hidden_dim_1_regressor
+hidden_dim_3_regressor = hidden_dim_2_regressor
+hidden_dim_4_regressor = hidden_dim_3_regressor
+hidden_dim_5_regressor = hidden_dim_4_regressor
+hidden_dim_6_regressor = hidden_dim_5_regressor 
 
 # Training hyperparameters
 optimizer_regressor          = 'Adam'
-batch_size_regressor         = 32
+batch_size_regressor         = 1000
 learning_rate_regressor      = 1e-3   
 # Maximal number of epochs
 epochs_regressor             = int(1e15)
@@ -213,7 +184,7 @@ es_patience_regressor        = 20
 parameter_loss_type       = 'mse'
 reconstruction_loss_type  = 'mse'
 parameter_loss_coeff      = 1.0
-reconstruction_loss_coeff = 0.0
+reconstruction_loss_coeff = 0.1
 loss_name_regressor = (str(parameter_loss_coeff) + '*parameter_loss_' + parameter_loss_type + ' + ' +
                        str(reconstruction_loss_coeff) + '*reconstruction_loss_' + reconstruction_loss_type )
 

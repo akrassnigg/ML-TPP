@@ -11,24 +11,26 @@ import numpy as np
 from scipy.optimize import curve_fit
 from joblib import Parallel, delayed
 
-from lib.pole_objective_functions import objective_1r, objective_1c
-from lib.pole_objective_functions import objective_2r, objective_1r1c, objective_2c
-from lib.pole_objective_functions import objective_3r, objective_2r1c, objective_1r2c, objective_3c
-from lib.pole_objective_functions import objective_1r_jac, objective_1c_jac
-from lib.pole_objective_functions import objective_2r_jac, objective_1r1c_jac, objective_2c_jac
-from lib.pole_objective_functions import objective_3r_jac, objective_2r1c_jac, objective_1r2c_jac, objective_3c_jac
-from lib.pole_config_organize     import pole_config_organize_re2 as pole_config_organize
+from lib.pole_objective_functions import objective_1r_dual, objective_1c_dual
+from lib.pole_objective_functions import objective_2r_dual, objective_1r1c_dual, objective_2c_dual
+from lib.pole_objective_functions import objective_3r_dual, objective_2r1c_dual, objective_1r2c_dual, objective_3c_dual
+from lib.pole_objective_functions import objective_1r_jac_dual, objective_1c_jac_dual
+from lib.pole_objective_functions import objective_2r_jac_dual, objective_1r1c_jac_dual, objective_2c_jac_dual
+from lib.pole_objective_functions import objective_3r_jac_dual, objective_2r1c_jac_dual, objective_1r2c_jac_dual, objective_3c_jac_dual
+from lib.pole_config_organize     import pole_config_organize_abs2_dual as pole_config_organize
 
 
-def get_scipy_pred(pole_class, grid_x, data_y, 
+def get_scipy_pred_dual(pole_class, grid_x, data_y, 
                    re_max, re_min, im_max, im_min, 
                    coeff_re_max, coeff_re_min, 
                    coeff_im_max, coeff_im_min,
-                   with_bounds=True, p0='default',
-                   method='trf', maxfev=100000, num_tries=1, xtol = 1e-8
+                   with_bounds=True,
+                   p0='random', method='lm', maxfev=1000000, num_tries=10, xtol = 1e-8
                    ):
     '''
     Uses Scipy curve_fit to fit different pole classes onto single (!) data sample
+    
+    "_dual" means, that this function deals with 2 pole configs with same positions but different coeffs 
     
     pole_class: int = 0-8 
         The class of the pole configuration to be found
@@ -42,20 +44,20 @@ def get_scipy_pred(pole_class, grid_x, data_y,
     with_bounds: bool, default=True
         Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
     
-    p0: list or numpy.ndarray of shape (k,) or 'default' or 'random', default='default'
+    p0: list or numpy.ndarray of shape (k,) or 'default' or 'random', default='random'
         Initial guesses for parameter search. 
         
         If 'default', the SciPy curve_fit default behaviour is used 
         
         If 'random', random guesses are used (use this if num_tries>1)
         
-    method: str = 'trf', 'dogbox' or 'lm', default='trf'
+    method: str = 'trf', 'dogbox' or 'lm', default='lm'
         The optimization method
         
-    maxfev: int > 0 , default=100000
+    maxfev: int > 0 , default=1000000
         Maximal number of function evaluations (see SciPy's curve_fit)
         
-    num_tries: int > 0, default=1
+    num_tries: int > 0, default=10
         The number of times the fit shall be tried (with varying initial guesses)
         
     xtol: float or list of floats, default 1e-8
@@ -64,11 +66,6 @@ def get_scipy_pred(pole_class, grid_x, data_y,
     returns: numpy.ndarray of shape (k,)
         Optimized parameters of the chosen pole class or nans if the fit failed
     '''
-    #with_bounds = True
-    #method      = 'trf'
-    #xtol        = 1e-8
-    #maxfev      = 100000
-    #num_tries = 10
     
     grid_x = np.reshape(grid_x,(-1))
     data_y = np.reshape(data_y,(-1))
@@ -78,11 +75,11 @@ def get_scipy_pred(pole_class, grid_x, data_y,
     else:
         xtol0, xtol1, xtol2, xtol3, xtol4, xtol5, xtol6, xtol7, xtol8 = [xtol for i in range(9)]
              
-    def get_p0(p0):
+    def get_p0(p0, lower, upper):
         if type(p0) == np.ndarray:
             p0_new = p0    
         elif p0 == 'random':
-            p0_new = np.random.uniform(np.array(upper), np.array(lower))
+            p0_new = np.random.uniform(np.array(lower), np.array(upper))
         elif p0 == 'default':
             p0_new = None
         else:
@@ -92,122 +89,122 @@ def get_scipy_pred(pole_class, grid_x, data_y,
     for num_try in range(num_tries): #retry fit num_tries times (with different random p0)
         if pole_class == 0:
             try:
-                lower = [re_min, -coeff_re_max]
-                upper = [re_max, coeff_re_max] 
-                p0_new = get_p0(p0)         
-                params_tmp, _ = curve_fit(objective_1r, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_1r_jac, xtol=xtol0, method=method) if with_bounds else \
-                              curve_fit(objective_1r, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_1r_jac, xtol=xtol0, method=method)
+                lower = [re_min, -coeff_re_max, -coeff_re_max]
+                upper = [re_max, coeff_re_max, coeff_re_max] 
+                p0_new = get_p0(p0, lower, upper)         
+                params_tmp, _ = curve_fit(objective_1r_dual, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_1r_jac_dual, xtol=xtol0, method=method) if with_bounds else \
+                              curve_fit(objective_1r_dual, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_1r_jac_dual, xtol=xtol0, method=method)
             except:
                 print('Fit failed!')
-                params_tmp = np.array([np.nan for i in range(2)])
+                params_tmp = np.array([np.nan for i in range(3)])
             
         elif pole_class == 1:
             try:
-                lower = [re_min, im_min, -coeff_re_max, -coeff_im_max]
-                upper = [re_max, im_max, coeff_re_max, coeff_im_max]   
-                p0_new = get_p0(p0)          
-                params_tmp, _ = curve_fit(objective_1c, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_1c_jac, xtol=xtol1, method=method) if with_bounds else \
-                              curve_fit(objective_1c, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_1c_jac, xtol=xtol1, method=method)
+                lower = [re_min, im_min, -coeff_re_max, -coeff_im_max, -coeff_re_max, -coeff_im_max]
+                upper = [re_max, im_max, coeff_re_max, coeff_im_max, coeff_re_max, coeff_im_max]   
+                p0_new = get_p0(p0, lower, upper)          
+                params_tmp, _ = curve_fit(objective_1c_dual, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_1c_jac_dual, xtol=xtol1, method=method) if with_bounds else \
+                              curve_fit(objective_1c_dual, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_1c_jac_dual, xtol=xtol1, method=method)
                 params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
             except:
                 print('Fit failed!')
-                params_tmp = np.array([np.nan for i in range(4)])
+                params_tmp = np.array([np.nan for i in range(6)])
                 
         elif pole_class == 2:
             try:
-                lower = [re_min, -coeff_re_max, re_min, -coeff_re_max]
-                upper = [re_max, coeff_re_max, re_max, coeff_re_max]   
-                p0_new = get_p0(p0)
-                params_tmp, _ = curve_fit(objective_2r, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_2r_jac, xtol=xtol2, method=method) if with_bounds else \
-                              curve_fit(objective_2r, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_2r_jac, xtol=xtol2, method=method)
+                lower = [re_min, -coeff_re_max, -coeff_re_max, re_min, -coeff_re_max, -coeff_re_max]
+                upper = [re_max, coeff_re_max, coeff_re_max, re_max, coeff_re_max, coeff_re_max]   
+                p0_new = get_p0(p0, lower, upper)
+                params_tmp, _ = curve_fit(objective_2r_dual, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_2r_jac_dual, xtol=xtol2, method=method) if with_bounds else \
+                              curve_fit(objective_2r_dual, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_2r_jac_dual, xtol=xtol2, method=method)
                 params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
             except:
                 print('Fit failed!')
-                params_tmp = np.array([np.nan for i in range(4)])
+                params_tmp = np.array([np.nan for i in range(6)])
                 
         elif pole_class == 3:
             try:
-                lower = [re_min, -coeff_re_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
-                upper = [re_max, coeff_re_max, re_max, im_max, coeff_re_max, coeff_im_max]
-                p0_new = get_p0(p0)
-                params_tmp, _ = curve_fit(objective_1r1c, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_1r1c_jac, xtol=xtol3, method=method) if with_bounds else \
-                              curve_fit(objective_1r1c, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_1r1c_jac, xtol=xtol3, method=method)
+                lower = [re_min, -coeff_re_max, -coeff_re_max, re_min, im_min, -coeff_re_max, -coeff_im_max, -coeff_re_max, -coeff_im_max]
+                upper = [re_max, coeff_re_max, coeff_re_max, re_max, im_max, coeff_re_max, coeff_im_max, coeff_re_max, coeff_im_max]
+                p0_new = get_p0(p0, lower, upper)
+                params_tmp, _ = curve_fit(objective_1r1c_dual, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_1r1c_jac_dual, xtol=xtol3, method=method) if with_bounds else \
+                              curve_fit(objective_1r1c_dual, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_1r1c_jac_dual, xtol=xtol3, method=method)
                 params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
             except:
                 print('Fit failed!')
-                params_tmp = np.array([np.nan for i in range(6)])
+                params_tmp = np.array([np.nan for i in range(9)])
                 
         elif pole_class == 4:
             try:
-                lower = [re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
-                upper = [re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max]
-                p0_new = get_p0(p0)
-                params_tmp, _ = curve_fit(objective_2c, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_2c_jac, xtol=xtol4, method=method) if with_bounds else \
-                              curve_fit(objective_2c, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_2c_jac, xtol=xtol4, method=method)
-                params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
-            except:
-                print('Fit failed!')
-                params_tmp = np.array([np.nan for i in range(8)])
-                
-        elif pole_class == 5:
-            try:
-                lower = [re_min, -coeff_re_max, re_min, -coeff_re_max, re_min, -coeff_re_max]
-                upper = [re_max, coeff_re_max, re_max, coeff_re_max, re_max, coeff_re_max]
-                p0_new = get_p0(p0)
-                params_tmp, _ = curve_fit(objective_3r, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_3r_jac, xtol=xtol5, method=method) if with_bounds else \
-                              curve_fit(objective_3r, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_3r_jac, xtol=xtol5, method=method)
-                params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
-            except:
-                print('Fit failed!')
-                params_tmp = np.array([np.nan for i in range(6)])
-                
-        elif pole_class == 6:
-            try:
-                lower = [re_min, -coeff_re_max, re_min, -coeff_re_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
-                upper = [re_max, coeff_re_max, re_max, coeff_re_max, re_max, im_max, coeff_re_max, coeff_im_max]
-                p0_new = get_p0(p0)
-                params_tmp, _ = curve_fit(objective_2r1c, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_2r1c_jac, xtol=xtol6, method=method) if with_bounds else \
-                              curve_fit(objective_2r1c, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_2r1c_jac, xtol=xtol6, method=method)
-                params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
-            except:
-                print('Fit failed!')
-                params_tmp = np.array([np.nan for i in range(8)])
-                
-        elif pole_class == 7:
-            try:
-                lower = [re_min, -coeff_re_max, re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
-                upper = [re_max, coeff_re_max, re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max]
-                p0_new = get_p0(p0)
-                params_tmp, _ = curve_fit(objective_1r2c, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_1r2c_jac, xtol=xtol7, method=method) if with_bounds else \
-                              curve_fit(objective_1r2c, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_1r2c_jac, xtol=xtol7, method=method)
-                params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1)   
-            except:
-                print('Fit failed!')
-                params_tmp = np.array([np.nan for i in range(10)])
-                
-        elif pole_class == 8:
-            try:
-                lower = [re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max]
-                upper = [re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max]
-                p0_new = get_p0(p0)
-                params_tmp, _ = curve_fit(objective_3c, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_3c_jac, xtol=xtol8, method=method) if with_bounds else \
-                              curve_fit(objective_3c, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_3c_jac, xtol=xtol8, method=method)
+                lower = [re_min, im_min, -coeff_re_max, -coeff_im_max, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max, -coeff_re_max, -coeff_im_max]
+                upper = [re_max, im_max, coeff_re_max, coeff_im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max, coeff_re_max, coeff_im_max]
+                p0_new = get_p0(p0, lower, upper)
+                params_tmp, _ = curve_fit(objective_2c_dual, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_2c_jac_dual, xtol=xtol4, method=method) if with_bounds else \
+                              curve_fit(objective_2c_dual, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_2c_jac_dual, xtol=xtol4, method=method)
                 params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
             except:
                 print('Fit failed!')
                 params_tmp = np.array([np.nan for i in range(12)])
+                
+        elif pole_class == 5:
+            try:
+                lower = [re_min, -coeff_re_max, -coeff_re_max, re_min, -coeff_re_max, -coeff_re_max, re_min, -coeff_re_max, -coeff_re_max]
+                upper = [re_max, coeff_re_max, coeff_re_max, re_max, coeff_re_max, coeff_re_max, re_max, coeff_re_max, coeff_re_max]
+                p0_new = get_p0(p0, lower, upper)
+                params_tmp, _ = curve_fit(objective_3r_dual, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_3r_jac_dual, xtol=xtol5, method=method) if with_bounds else \
+                              curve_fit(objective_3r_dual, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_3r_jac_dual, xtol=xtol5, method=method)
+                params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
+            except:
+                print('Fit failed!')
+                params_tmp = np.array([np.nan for i in range(9)])
+                
+        elif pole_class == 6:
+            try:
+                lower = [re_min, -coeff_re_max, -coeff_re_max, re_min, -coeff_re_max, -coeff_re_max, re_min, im_min, -coeff_re_max, -coeff_im_max, -coeff_re_max, -coeff_im_max]
+                upper = [re_max, coeff_re_max, coeff_re_max, re_max, coeff_re_max, coeff_re_max, re_max, im_max, coeff_re_max, coeff_im_max, coeff_re_max, coeff_im_max]
+                p0_new = get_p0(p0, lower, upper)
+                params_tmp, _ = curve_fit(objective_2r1c_dual, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_2r1c_jac_dual, xtol=xtol6, method=method) if with_bounds else \
+                              curve_fit(objective_2r1c_dual, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_2r1c_jac_dual, xtol=xtol6, method=method)
+                params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
+            except:
+                print('Fit failed!')
+                params_tmp = np.array([np.nan for i in range(12)])
+                
+        elif pole_class == 7:
+            try:
+                lower = [re_min, -coeff_re_max, -coeff_re_max, re_min, im_min, -coeff_re_max, -coeff_im_max, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max, -coeff_re_max, -coeff_im_max]
+                upper = [re_max, coeff_re_max, coeff_re_max, re_max, im_max, coeff_re_max, coeff_im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max, coeff_re_max, coeff_im_max]
+                p0_new = get_p0(p0, lower, upper)
+                params_tmp, _ = curve_fit(objective_1r2c_dual, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_1r2c_jac_dual, xtol=xtol7, method=method) if with_bounds else \
+                              curve_fit(objective_1r2c_dual, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_1r2c_jac_dual, xtol=xtol7, method=method)
+                params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1)   
+            except:
+                print('Fit failed!')
+                params_tmp = np.array([np.nan for i in range(15)])
+                
+        elif pole_class == 8:
+            try:
+                lower = [re_min, im_min, -coeff_re_max, -coeff_im_max, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max, -coeff_re_max, -coeff_im_max, re_min, im_min, -coeff_re_max, -coeff_im_max, -coeff_re_max, -coeff_im_max]
+                upper = [re_max, im_max, coeff_re_max, coeff_im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max, coeff_re_max, coeff_im_max, re_max, im_max, coeff_re_max, coeff_im_max, coeff_re_max, coeff_im_max]
+                p0_new = get_p0(p0, lower, upper)
+                params_tmp, _ = curve_fit(objective_3c_dual, grid_x, data_y, maxfev=maxfev, bounds=(lower, upper), p0=p0_new, jac=objective_3c_jac_dual, xtol=xtol8, method=method) if with_bounds else \
+                              curve_fit(objective_3c_dual, grid_x, data_y, maxfev=maxfev, p0=p0_new, jac=objective_3c_jac_dual, xtol=xtol8, method=method)
+                params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
+            except:
+                print('Fit failed!')
+                params_tmp = np.array([np.nan for i in range(18)])
         if ~np.isnan(params_tmp[0]):    # If the fit worked, break the retry loop
             break
             
     return params_tmp
 
 
-def get_all_scipy_preds(grid_x, data_y, 
+def get_all_scipy_preds_dual(grid_x, data_y, 
                         re_max, re_min, im_max, im_min, 
                         coeff_re_max, coeff_re_min, 
                         coeff_im_max, coeff_im_min,
                         with_bounds=True,
-                        p0='default', method='trf', maxfev=100000, num_tries=1, xtol = 1e-8):
+                   p0='random', method='lm', maxfev=1000000, num_tries=10, xtol = 1e-8):
     '''
     Uses Scipy curve_fit to fit all 9 different pole classes onto a single data sample
     
@@ -220,20 +217,20 @@ def get_all_scipy_preds(grid_x, data_y,
     with_bounds: bool, default=True
         Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
     
-    p0: 'default' or 'random', default='default'
+    p0: list or numpy.ndarray of shape (k,) or 'default' or 'random', default='random'
         Initial guesses for parameter search. 
         
         If 'default', the SciPy curve_fit default behaviour is used 
         
         If 'random', random guesses are used (use this if num_tries>1)
         
-    method: str = 'trf', 'dogbox' or 'lm', default='trf'
+    method: str = 'trf', 'dogbox' or 'lm', default='lm'
         The optimization method
         
-    maxfev: int > 0 , default=100000
+    maxfev: int > 0 , default=1000000
         Maximal number of function evaluations (see SciPy's curve_fit)
         
-    num_tries: int > 0, default=1
+    num_tries: int > 0, default=10
         The number of times the fit shall be tried (with varying initial guesses)
         
     xtol: float or list of floats, default 1e-8
@@ -244,7 +241,7 @@ def get_all_scipy_preds(grid_x, data_y,
     '''
     params = []
     for i in range(9):
-        params_tmp = get_scipy_pred(pole_class=i, grid_x=grid_x, data_y=data_y, 
+        params_tmp = get_scipy_pred_dual(pole_class=i, grid_x=grid_x, data_y=data_y, 
                                     re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
                                     coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
                                     coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
@@ -257,12 +254,12 @@ def get_all_scipy_preds(grid_x, data_y,
     return params
 
 
-def get_all_scipy_preds_dataprep(grid_x, data_y, 
+def get_all_scipy_preds_dataprep_dual(grid_x, data_y, 
                                  re_max, re_min, im_max, im_min, 
                                  coeff_re_max, coeff_re_min, 
                                  coeff_im_max, coeff_im_min,
                                  with_bounds=True,
-                                 p0='default', method='trf', maxfev=100000, num_tries=1, xtol = 1e-8):
+                                 p0='random', method='lm', maxfev=1000000, num_tries=10, xtol = 1e-8):
     '''
     Uses Scipy curve_fit to fit all 9 different pole classes onto multiple data samples for creating data to train a NN. 
     
@@ -278,20 +275,20 @@ def get_all_scipy_preds_dataprep(grid_x, data_y,
     with_bounds: bool, default=True
         Shall the fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
     
-    p0: 'default' or 'random', default='default'
+    p0: list or numpy.ndarray of shape (k,) or 'default' or 'random', default='random'
         Initial guesses for parameter search. 
         
         If 'default', the SciPy curve_fit default behaviour is used 
         
         If 'random', random guesses are used (use this if num_tries>1)
         
-    method: str = 'trf', 'dogbox' or 'lm', default='trf'
+    method: str = 'trf', 'dogbox' or 'lm', default='lm'
         The optimization method
         
-    maxfev: int > 0 , default=100000
+    maxfev: int > 0 , default=1000000
         Maximal number of function evaluations (see SciPy's curve_fit)
         
-    num_tries: int > 0, default=1
+    num_tries: int > 0, default=10
         The number of times the fit shall be tried (with varying initial guesses)
         
     xtol: float or list of floats, default 1e-8
@@ -304,7 +301,7 @@ def get_all_scipy_preds_dataprep(grid_x, data_y,
     data_y = np.atleast_2d(data_y)
 
     def get_all_scipy_preds_tmp(data_y_fun):
-        return get_all_scipy_preds(grid_x=grid_x, data_y=data_y_fun, 
+        return get_all_scipy_preds_dual(grid_x=grid_x, data_y=data_y_fun, 
                                    re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
                                    coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
                                    coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,

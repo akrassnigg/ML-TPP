@@ -12,9 +12,11 @@ import numpy as np
 from lib.pole_functions import complex_conjugate_pole_pair
     
 
-def pole_curve_calc(pole_class, pole_params, grid_x):
+def pole_curve_calc_dual(pole_class, pole_params, grid_x):
     '''
     Calculate the real part of given pole configurations on a given grid
+    
+    "_dual" means, that this function deals with 2 pole configs with same positions but different coeffs 
     
     NOTE: The difference between pole_curve_calc and pole_curve_calc2 is: 
         
@@ -34,45 +36,35 @@ def pole_curve_calc(pole_class, pole_params, grid_x):
     grid_x: numpy.ndarray of shape (n,) or (1,n)
         Gridpoints, where the function/pole configuration shall be evaluated
     
-    returns: numpy.ndarray of shape (m,n)
+    returns: numpy.ndarray of shape (m,2*n)
         Function values, i.e. the 'y-values'
     '''
     grid_x = np.reshape(grid_x, (-1))  
     pole_params = pole_params.transpose()
     
-    if pole_class == 0:
-        params_1r = pole_params
-        curve_pred   = complex_conjugate_pole_pair(grid_x, params_1r[0], params_1r[1], params_1r[2], params_1r[3])
-    elif pole_class == 1:
-        params_1c = pole_params
-        curve_pred   = complex_conjugate_pole_pair(grid_x, params_1c[0], params_1c[1], params_1c[2], params_1c[3])
-    elif pole_class == 2:
-        params_2r = pole_params
-        curve_pred   = complex_conjugate_pole_pair(grid_x, params_2r[0], params_2r[1], params_2r[2], params_2r[3]) + complex_conjugate_pole_pair(grid_x, params_2r[4], params_2r[5], params_2r[6], params_2r[7])
-    elif pole_class == 3:
-        params_1r1c = pole_params
-        curve_pred = complex_conjugate_pole_pair(grid_x, params_1r1c[0], params_1r1c[1], params_1r1c[2], params_1r1c[3]) + complex_conjugate_pole_pair(grid_x, params_1r1c[4], params_1r1c[5], params_1r1c[6], params_1r1c[7])
-    elif pole_class == 4:
-        params_2c = pole_params
-        curve_pred   = complex_conjugate_pole_pair(grid_x, params_2c[0], params_2c[1], params_2c[2], params_2c[3]) + complex_conjugate_pole_pair(grid_x, params_2c[4], params_2c[5], params_2c[6], params_2c[7])
-    elif pole_class == 5:
-        params_3r = pole_params
-        curve_pred   = complex_conjugate_pole_pair(grid_x, params_3r[0], params_3r[1], params_3r[2], params_3r[3]) + complex_conjugate_pole_pair(grid_x, params_3r[4], params_3r[5], params_3r[6], params_3r[7]) + complex_conjugate_pole_pair(grid_x, params_3r[8], params_3r[9], params_3r[10], params_3r[11])
-    elif pole_class == 6:
-        params_2r1c = pole_params
-        curve_pred = complex_conjugate_pole_pair(grid_x, params_2r1c[0], params_2r1c[1], params_2r1c[2], params_2r1c[3]) + complex_conjugate_pole_pair(grid_x, params_2r1c[4], params_2r1c[5], params_2r1c[6], params_2r1c[7]) + complex_conjugate_pole_pair(grid_x, params_2r1c[8], params_2r1c[9], params_2r1c[10], params_2r1c[11])
-    elif pole_class == 7:
-        params_1r2c = pole_params
-        curve_pred = complex_conjugate_pole_pair(grid_x, params_1r2c[0], params_1r2c[1], params_1r2c[2], params_1r2c[3]) + complex_conjugate_pole_pair(grid_x, params_1r2c[4], params_1r2c[5], params_1r2c[6], params_1r2c[7]) + complex_conjugate_pole_pair(grid_x, params_1r2c[8], params_1r2c[9], params_1r2c[10], params_1r2c[11])
-    elif pole_class == 8:
-        params_3c = pole_params
-        curve_pred   = complex_conjugate_pole_pair(grid_x, params_3c[0], params_3c[1], params_3c[2], params_3c[3]) + complex_conjugate_pole_pair(grid_x, params_3c[4], params_3c[5], params_3c[6], params_3c[7]) + complex_conjugate_pole_pair(grid_x, params_3c[8], params_3c[9], params_3c[10], params_3c[11])
-    return curve_pred
+    if pole_class in [0,1]:
+        curve_pred1  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[1], pole_params[2], pole_params[3])
+        curve_pred2  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[1], pole_params[4], pole_params[5])
+    elif pole_class in [2,3,4]:
+        curve_pred1  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[1], pole_params[2],  pole_params[3]) 
+        curve_pred2  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[1], pole_params[4],  pole_params[5])
+        curve_pred1 += complex_conjugate_pole_pair(grid_x, pole_params[6], pole_params[7], pole_params[8],  pole_params[9]) 
+        curve_pred2 += complex_conjugate_pole_pair(grid_x, pole_params[6], pole_params[7], pole_params[10], pole_params[11])
+    elif pole_class in [5,6,7,8]:
+        curve_pred1  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[1],   pole_params[2],  pole_params[3]) 
+        curve_pred2  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[1],   pole_params[4],  pole_params[5])
+        curve_pred1 += complex_conjugate_pole_pair(grid_x, pole_params[6], pole_params[7],   pole_params[8],  pole_params[9]) 
+        curve_pred2 += complex_conjugate_pole_pair(grid_x, pole_params[6], pole_params[7],   pole_params[10], pole_params[11])
+        curve_pred1 += complex_conjugate_pole_pair(grid_x, pole_params[12], pole_params[13], pole_params[14], pole_params[15]) 
+        curve_pred2 += complex_conjugate_pole_pair(grid_x, pole_params[12], pole_params[13], pole_params[16], pole_params[17])                
+    return np.hstack((curve_pred1, curve_pred2))
 
 
-def pole_curve_calc2(pole_class, pole_params, grid_x):
+def pole_curve_calc2_dual(pole_class, pole_params, grid_x):
     '''
     Calculate the real part of given pole configurations on a given grid
+    
+    "_dual" means, that this function deals with 2 pole configs with same positions but different coeffs 
     
     NOTE: The difference between pole_curve_calc and pole_curve_calc2 is: 
         
@@ -92,40 +84,62 @@ def pole_curve_calc2(pole_class, pole_params, grid_x):
     grid_x: numpy.ndarray of shape (n,) or (1,n)
         Gridpoints, where the function/pole configuration shall be evaluated
     
-    returns: numpy.ndarray of shape (m,n)
+    returns: numpy.ndarray of shape (m,2*n)
         Function values, i.e. the 'y-values'
     '''
     grid_x = np.reshape(grid_x, (-1))  
     pole_params = pole_params.transpose()
     
     if pole_class == 0:
-        params_1r = pole_params
-        curve_pred   = complex_conjugate_pole_pair(grid_x, params_1r[0], params_1r[0]*0, params_1r[1], params_1r[0]*0)
+        curve_pred1  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[0]*0, pole_params[1], pole_params[0]*0)
+        curve_pred2  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[0]*0, pole_params[2], pole_params[0]*0)
     elif pole_class == 1:
-        params_1c = pole_params
-        curve_pred   = complex_conjugate_pole_pair(grid_x, params_1c[0], params_1c[1], params_1c[2], params_1c[3])
+        curve_pred1  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[1], pole_params[2], pole_params[3]) 
+        curve_pred2  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[1], pole_params[4], pole_params[5])
     elif pole_class == 2:
-        params_2r = pole_params
-        curve_pred   = complex_conjugate_pole_pair(grid_x, params_2r[0], params_2r[0]*0, params_2r[1], params_2r[0]*0) + complex_conjugate_pole_pair(grid_x, params_2r[2], params_2r[0]*0, params_2r[3], params_2r[0]*0)
+        curve_pred1  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[0]*0, pole_params[1], pole_params[0]*0) 
+        curve_pred2  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[0]*0, pole_params[2], pole_params[0]*0)
+        curve_pred1 += complex_conjugate_pole_pair(grid_x, pole_params[3], pole_params[0]*0, pole_params[4], pole_params[0]*0) 
+        curve_pred2 += complex_conjugate_pole_pair(grid_x, pole_params[3], pole_params[0]*0, pole_params[5], pole_params[0]*0)
     elif pole_class == 3:
-        params_1r1c = pole_params
-        curve_pred = complex_conjugate_pole_pair(grid_x, params_1r1c[0], params_1r1c[0]*0, params_1r1c[1], params_1r1c[0]*0) + complex_conjugate_pole_pair(grid_x, params_1r1c[2], params_1r1c[3], params_1r1c[4], params_1r1c[5])
+        curve_pred1  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[0]*0, pole_params[1], pole_params[0]*0) 
+        curve_pred2  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[0]*0, pole_params[2], pole_params[0]*0)
+        curve_pred1 += complex_conjugate_pole_pair(grid_x, pole_params[3], pole_params[4],   pole_params[5], pole_params[6]) 
+        curve_pred2 += complex_conjugate_pole_pair(grid_x, pole_params[3], pole_params[4],   pole_params[7], pole_params[8])
     elif pole_class == 4:
-        params_2c = pole_params
-        curve_pred   = complex_conjugate_pole_pair(grid_x, params_2c[0], params_2c[1], params_2c[2], params_2c[3]) + complex_conjugate_pole_pair(grid_x, params_2c[4], params_2c[5], params_2c[6], params_2c[7])
+        curve_pred1  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[1], pole_params[2],  pole_params[3]) 
+        curve_pred2  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[1], pole_params[4],  pole_params[5])
+        curve_pred1 += complex_conjugate_pole_pair(grid_x, pole_params[6], pole_params[7], pole_params[8],  pole_params[9]) 
+        curve_pred2 += complex_conjugate_pole_pair(grid_x, pole_params[6], pole_params[7], pole_params[10], pole_params[11])
     elif pole_class == 5:
-        params_3r = pole_params
-        curve_pred   = complex_conjugate_pole_pair(grid_x, params_3r[0], params_3r[0]*0, params_3r[1], params_3r[0]*0) + complex_conjugate_pole_pair(grid_x, params_3r[2], params_3r[0]*0, params_3r[3], params_3r[0]*0) + complex_conjugate_pole_pair(grid_x, params_3r[4], params_3r[0]*0, params_3r[5], params_3r[0]*0)
+        curve_pred1  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[0]*0, pole_params[1], pole_params[0]*0) 
+        curve_pred2  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[0]*0, pole_params[2], pole_params[0]*0)
+        curve_pred1 += complex_conjugate_pole_pair(grid_x, pole_params[3], pole_params[0]*0, pole_params[4], pole_params[0]*0) 
+        curve_pred2 += complex_conjugate_pole_pair(grid_x, pole_params[3], pole_params[0]*0, pole_params[5], pole_params[0]*0)
+        curve_pred1 += complex_conjugate_pole_pair(grid_x, pole_params[6], pole_params[0]*0, pole_params[7], pole_params[0]*0) 
+        curve_pred2 += complex_conjugate_pole_pair(grid_x, pole_params[6], pole_params[0]*0, pole_params[8], pole_params[0]*0)
     elif pole_class == 6:
-        params_2r1c = pole_params
-        curve_pred = complex_conjugate_pole_pair(grid_x, params_2r1c[0], params_2r1c[0]*0, params_2r1c[1], params_2r1c[0]*0) + complex_conjugate_pole_pair(grid_x, params_2r1c[2], params_2r1c[0]*0, params_2r1c[3], params_2r1c[0]*0) + complex_conjugate_pole_pair(grid_x, params_2r1c[4], params_2r1c[5], params_2r1c[6], params_2r1c[7])
+        curve_pred1  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[0]*0, pole_params[1], pole_params[0]*0) 
+        curve_pred2  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[0]*0, pole_params[2], pole_params[0]*0)
+        curve_pred1 += complex_conjugate_pole_pair(grid_x, pole_params[3], pole_params[0]*0, pole_params[4], pole_params[0]*0) 
+        curve_pred2 += complex_conjugate_pole_pair(grid_x, pole_params[3], pole_params[0]*0, pole_params[5], pole_params[0]*0)
+        curve_pred1 += complex_conjugate_pole_pair(grid_x, pole_params[6], pole_params[7],   pole_params[8], pole_params[9])
+        curve_pred2 += complex_conjugate_pole_pair(grid_x, pole_params[6], pole_params[7],   pole_params[10],pole_params[11])         
     elif pole_class == 7:
-        params_1r2c = pole_params
-        curve_pred = complex_conjugate_pole_pair(grid_x, params_1r2c[0], params_1r2c[0]*0, params_1r2c[1], params_1r2c[0]*0) + complex_conjugate_pole_pair(grid_x, params_1r2c[2], params_1r2c[3], params_1r2c[4], params_1r2c[5]) + complex_conjugate_pole_pair(grid_x, params_1r2c[6], params_1r2c[7], params_1r2c[8], params_1r2c[9])
+        curve_pred1  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[0]*0, pole_params[1],  pole_params[0]*0) 
+        curve_pred2  = complex_conjugate_pole_pair(grid_x, pole_params[0], pole_params[0]*0, pole_params[2],  pole_params[0]*0)
+        curve_pred1 += complex_conjugate_pole_pair(grid_x, pole_params[3], pole_params[4],   pole_params[5],  pole_params[6]) 
+        curve_pred2 += complex_conjugate_pole_pair(grid_x, pole_params[3], pole_params[4],   pole_params[7],  pole_params[8])
+        curve_pred1 += complex_conjugate_pole_pair(grid_x, pole_params[9], pole_params[10],  pole_params[11], pole_params[12]) 
+        curve_pred2 += complex_conjugate_pole_pair(grid_x, pole_params[9], pole_params[10],  pole_params[13], pole_params[14])          
     elif pole_class == 8:
-        params_3c = pole_params
-        curve_pred   = complex_conjugate_pole_pair(grid_x, params_3c[0], params_3c[1], params_3c[2], params_3c[3]) + complex_conjugate_pole_pair(grid_x, params_3c[4], params_3c[5], params_3c[6], params_3c[7]) + complex_conjugate_pole_pair(grid_x, params_3c[8], params_3c[9], params_3c[10], params_3c[11])
-    return curve_pred
+        curve_pred1  = complex_conjugate_pole_pair(grid_x, pole_params[0],  pole_params[1],  pole_params[2],   pole_params[3]) 
+        curve_pred2  = complex_conjugate_pole_pair(grid_x, pole_params[0],  pole_params[1],  pole_params[4],   pole_params[5])
+        curve_pred1 += complex_conjugate_pole_pair(grid_x, pole_params[6],  pole_params[7],  pole_params[8],   pole_params[9]) 
+        curve_pred2 += complex_conjugate_pole_pair(grid_x, pole_params[6],  pole_params[7],  pole_params[10],  pole_params[11])
+        curve_pred1 += complex_conjugate_pole_pair(grid_x, pole_params[12], pole_params[13], pole_params[14],  pole_params[15]) 
+        curve_pred2 += complex_conjugate_pole_pair(grid_x, pole_params[12], pole_params[13], pole_params[16],  pole_params[17])
+    return np.hstack((curve_pred1, curve_pred2))
 
 
 
