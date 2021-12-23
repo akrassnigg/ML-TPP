@@ -19,7 +19,7 @@ from pytorch_lightning.core import LightningModule
 from pytorch_lightning.metrics.functional import accuracy
 from torch.utils.data import WeightedRandomSampler
 
-from lib.architectures import FC1, FC2, FC3, FC4, FC5, FC6
+from lib.architectures import FC1, FC2, FC3, FC4, FC5, FC6, FC7, FC8, FC9, FC10
 
 
 ##############################################################################

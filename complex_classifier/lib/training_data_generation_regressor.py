@@ -11,11 +11,11 @@ Complex singluarity data generation code: Generate data for the regressor
 import numpy as np
 import os
 
-from lib.get_params_functions import get_train_params_dual
+from lib.get_params_functions      import get_train_params_dual
 from lib.standardization_functions import std_data_new
-from lib.curve_calc_functions import pole_curve_calc2_dual 
-from lib.pole_config_organize import pole_config_organize_abs2_dual 
-from lib.pole_config_organize import remove_zero_imag_parts_dual
+from lib.curve_calc_functions_dual import pole_curve_calc_dens_dual 
+from lib.pole_config_organize_dual import pole_config_organize_abs_dens_dual 
+from lib.pole_config_organize_dual import remove_zero_imag_parts_dual
 
 
 def create_training_data_regressor(length, pole_class, grid_x, data_dir,
@@ -53,9 +53,9 @@ def create_training_data_regressor(length, pole_class, grid_x, data_dir,
     params = remove_zero_imag_parts_dual(pole_class=pole_class, pole_params=params)
 
     # Calculate the pole curves
-    out_re = pole_curve_calc2_dual(pole_class=pole_class, pole_params=params, grid_x=grid_x)
+    out_re = pole_curve_calc_dens_dual(pole_class=pole_class, pole_params=params, grid_x=grid_x)
     # Organize pole configurations
-    params = pole_config_organize_abs2_dual(pole_class=pole_class, pole_params=params)
+    params = pole_config_organize_abs_dens_dual(pole_class=pole_class, pole_params=params)
 
     # Standardize Inputs
     out_re = std_data_new(data=out_re, with_mean=False, name_var="variances.npy", std_path=data_dir) 

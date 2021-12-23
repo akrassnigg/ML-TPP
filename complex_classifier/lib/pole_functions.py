@@ -117,6 +117,3 @@ def complex_conjugate_pole_pair(x_re, part_re, part_im, coeff_re, coeff_im, powe
 
     return result_re_plus + result_re_minus
 
-
-
-

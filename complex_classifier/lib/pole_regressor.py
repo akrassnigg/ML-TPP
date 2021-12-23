@@ -23,12 +23,12 @@ import matplotlib.pyplot as plt
 from lib.architectures import FC1, FC2, FC3, FC4, FC5, FC6
 from lib.standardization_functions import rm_std_data_torch, std_data_torch
 
-from lib.curve_calc_functions_torch import pole_curve_calc2_torch_dual as pole_curve_calc
-from lib.pole_config_organize import pole_config_organize_abs2_dual as pole_config_organize
+from lib.curve_calc_functions_torch_dual import pole_curve_calc_torch_dens_dual as pole_curve_calc
+from lib.pole_config_organize_dual import pole_config_organize_abs_dens_dual as pole_config_organize
 
-from lib.pole_config_organize import add_zero_imag_parts_dual_torch
-from lib.pole_config_organize import pole_config_organize_abs_dual
-from lib.curve_calc_functions_torch import pole_curve_calc_torch_dual
+from lib.pole_config_organize_dual import add_zero_imag_parts_dual_torch
+from lib.pole_config_organize_dual import pole_config_organize_abs_dual
+from lib.curve_calc_functions_torch_dual import pole_curve_calc_torch_dual
 
 ##############################################################################
 ###################   Data-related Classes   #################################

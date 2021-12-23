@@ -100,65 +100,68 @@ if __name__ == '__main__':
     
     hyperparameters = {**net_hyperparameters, **other_hyperparameters}
     
-    wandb.init(config=hyperparameters,
-               entity="ml-tpp", project="pole_classifier",
-               group="Regressor Experiment: Dual NNSC",
-               notes="",
-               tags = ["Regressor"])
-
-    logger = WandbLogger() 
+    for run_i in range(3):
     
-    num_runs = num_runs_regressor
-    test_loss_averaged = 0
-    for i in range(num_runs): # average test_acc over multiple runs
-        if training_step_regressor == 0: #start training from scratch
-            model = Pole_Regressor(
-                        **net_hyperparameters
-                        )
-            
-        elif training_step_regressor == 1: # resume training          
-            model = Pole_Regressor.load_from_checkpoint(models_dir_regressor + name_ckpt_regressor,
-                                                        **net_hyperparameters)
-            
-        datamodule = PoleDataModule_Regressor(data_dir=data_dir_regressor, batch_size=batch_size_regressor, 
-                                train_portion=train_portion_regressor, validation_portion=val_portion_regressor, test_portion=test_portion_regressor, 
-                                num_use_data=num_use_data_regressor)
-        
-        checkpoint_callback1 = pl.callbacks.ModelCheckpoint(
-            dirpath = models_dir_regressor,
-            filename = 'name_' + str(wandb.run.name) + '_id_' + str(wandb.run.id) + '_' + str(i),
-            monitor="val_loss",
-            save_top_k=1, 
-            mode='min',
-            save_last= False
-        )
-        
-        checkpoint_callback2 = pl.callbacks.ModelCheckpoint(
-            monitor="val_loss",
-            save_top_k=1, 
-            mode='min',
-            save_last= True
-        )
-        
-        early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=es_patience_regressor, mode="min")
-        
-        trainer = pl.Trainer(
-            logger=logger,
-            val_check_interval=val_check_interval_regressor,
-            callbacks=[checkpoint_callback1, early_stop_callback], #, checkpoint_callback2
-            max_epochs=epochs_regressor,
-            gpus=1
-        )
+        wandb.init(config=hyperparameters,
+                   entity="ml-tpp", project="pole_classifier",
+                   group="Regressor Experiment: Dual NNSC",
+                   notes="",
+                   tags = ["Regressor"])
     
-        trainer.logger.log_hyperparams(hyperparameters)
-        trainer.fit(model, datamodule=datamodule)
-        trainer.test(model, datamodule=datamodule, ckpt_path="best")
-        test_loss_averaged += trainer.logged_metrics["test_loss"].item()
-    test_loss_averaged /= num_runs
-    if num_runs > 1:
-        wandb.log({'test_loss_averaged': test_loss_averaged})
+        logger = WandbLogger() 
+        
+        num_runs = num_runs_regressor
+        test_loss_averaged = 0
+        for i in range(num_runs): # average test_acc over multiple runs
+            if training_step_regressor == 0: #start training from scratch
+                model = Pole_Regressor(
+                            **net_hyperparameters
+                            )
+                
+            elif training_step_regressor == 1: # resume training          
+                model = Pole_Regressor.load_from_checkpoint(models_dir_regressor + name_ckpt_regressor,
+                                                            **net_hyperparameters)
+                
+            datamodule = PoleDataModule_Regressor(data_dir=data_dir_regressor, batch_size=batch_size_regressor, 
+                                    train_portion=train_portion_regressor, validation_portion=val_portion_regressor, test_portion=test_portion_regressor, 
+                                    num_use_data=num_use_data_regressor)
+            
+            checkpoint_callback1 = pl.callbacks.ModelCheckpoint(
+                dirpath = models_dir_regressor,
+                filename = 'name_' + str(wandb.run.name) + '_id_' + str(wandb.run.id) + '_' + str(i),
+                monitor="val_loss",
+                save_top_k=1, 
+                mode='min',
+                save_last= False
+            )
+            
+            checkpoint_callback2 = pl.callbacks.ModelCheckpoint(
+                monitor="val_loss",
+                save_top_k=1, 
+                mode='min',
+                save_last= True
+            )
+            
+            early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=es_patience_regressor, mode="min")
+            
+            trainer = pl.Trainer(
+                logger=logger,
+                val_check_interval=val_check_interval_regressor,
+                callbacks=[checkpoint_callback1, early_stop_callback], #, checkpoint_callback2
+                max_epochs=epochs_regressor,
+                gpus=1
+            )
+        
+            trainer.logger.log_hyperparams(hyperparameters)
+            trainer.fit(model, datamodule=datamodule)
+            trainer.test(model, datamodule=datamodule, ckpt_path="best")
+            test_loss_averaged += trainer.logged_metrics["test_loss"].item()
+        test_loss_averaged /= num_runs
+        if num_runs > 1:
+            wandb.log({'test_loss_averaged': test_loss_averaged})
             
         
+        wandb.finish()
         
         
         

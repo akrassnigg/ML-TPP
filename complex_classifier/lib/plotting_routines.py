@@ -44,7 +44,11 @@ def classifier_plot(labels, predictions, norm_ax=0, do_return=False):
         realclass = int(labels[i])
         predclass = int(predictions[i])
         count[realclass, predclass] += 1.
-    count = normalize(count, axis=norm_ax, norm='l1')
+    if norm_ax == 0:
+        count = normalize(count, axis=1, norm='l1')
+        count = normalize(count, axis=0, norm='l1')
+    elif norm_ax == 1:
+        count = normalize(count, axis=1, norm='l1')
     
     plt.clf()
     plt.imshow(count)

@@ -49,17 +49,17 @@ models_dir_classifier = dir_classifier + 'models/'
 ############### Data Creation ################
 ##############################################
 # Number of data points to be created: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class)
-n_examples_classifier = 100000
+n_examples_classifier = 20000
 
 # Scipy curve_fit parameters
 # Fitting method
-method_classifier      = [] #empty -> don't use SciPy
+method_classifier      = ['lm','lm', 'trf', 'dogbox','dogbox','dogbox'] 
 # Use parameter boundaries?
-with_bounds_classifier = [] #empty -> don't use SciPy
+with_bounds_classifier = [False,False, True, True,True,True] 
 # Initial guess of parameters
 p0_classifier          = ['random' for i in range(len(method_classifier))] 
 # How many times shall we try to fit the data? Note: Values>1 only make sense if p0='random'
-num_tries_classifier   = [10 for i in range(len(method_classifier))]  
+num_tries_classifier   = [100 for i in range(len(method_classifier))]  
 # ~ Maximal number of optimization steps
 maxfev_classifier      = [1000000 for i in range(len(method_classifier))]
 # Convergence parameter: can be a single int or a list of ints, one for each class (->list of lists)
@@ -71,8 +71,8 @@ xtol_classifier        = [1e-8 for i in range(len(method_classifier))]
 # Number of data points to be used: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
 num_use_data_classifier = 0
 # Indices of data_x that shall be used to train the classifier
-use_indices_classifier  = np.hstack([   np.arange(0, len(standard_re)*2)  ])
-input_name_classifier   = 'out_re'
+use_indices_classifier  = np.hstack([   np.arange(0*237, 6*237)  ])
+input_name_classifier   = 'lm_wb=Fx2+trf_wb=T+dogbox_wb=Tx3'
 
 # Data split
 train_portion_classifier = 0.8
@@ -81,15 +81,15 @@ test_portion_classifier  = 0.1
 
 # Network hyperparameters
 # ANN architecture
-architecture_classifier = 'FC6'
+architecture_classifier = 'FC3'
 in_features_classifier  = len(use_indices_classifier)
 out_features_classifier = 9
-hidden_dim_1_classifier = 32
-hidden_dim_2_classifier = 32
-hidden_dim_3_classifier = 32
-hidden_dim_4_classifier = 32
-hidden_dim_5_classifier = 32
-hidden_dim_6_classifier = 32
+hidden_dim_1_classifier = 8
+hidden_dim_2_classifier = 8
+hidden_dim_3_classifier = 8
+hidden_dim_4_classifier = 0
+hidden_dim_5_classifier = 0
+hidden_dim_6_classifier = 0
  
 # Training hyperparameters
 optimizer_classifier          = 'Adam'
@@ -146,6 +146,8 @@ n_examples_regressor = 1000000
 ##############################################
 # Number of data points to be used: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
 num_use_data_regressor = 0
+# After how many epochs shall the data be updated
+num_epochs_use_regressor     = int(1e15)  
 
 # Training mode: 0: start from scratch, 1: resume training from checkpoint
 training_step_regressor      = 0 
