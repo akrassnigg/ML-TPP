@@ -29,8 +29,7 @@ def get_data_x_dual(data_y, grid_x,
                re_max, re_min, im_max, im_min, 
                coeff_re_max, coeff_re_min, 
                coeff_im_max, coeff_im_min,
-               with_bounds=True,
-               p0='random', method='lm', maxfev=1000000, num_tries=10, xtol = 1e-8):
+               method='lm', with_bounds=False):
     '''
     Generates the unstandardized network input from the pole curves (out_re)
     
@@ -45,28 +44,12 @@ def get_data_x_dual(data_y, grid_x,
     re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
         Define a box. Parameter configurations are searched in this box if with_bounds=True
         
-    with_bounds: bool, default=True
-        Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
-    
-    p0: 'default' or 'random', default='random'
-        Initial guesses for parameter search. 
-        
-        If 'default', the SciPy curve_fit default behaviour is used 
-        
-        If 'random', random guesses are used (use this if num_tries>1)
-        
     method: str = 'trf', 'dogbox' or 'lm', default='lm'
         The optimization method
-        
-    maxfev: int > 0 , default=1000000
-        Maximal number of function evaluations (see SciPy's curve_fit)
-        
-    num_tries: int > 0, default=10
-        The number of times the fit shall be tried (with varying initial guesses)
-        
-    xtol: float or list of floats, default 1e-8
-        Convergence criterion (see SciPy's curve_fit)    
-    
+   
+    with_bounds: bool, default=False
+        Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
+           
     returns: two numpy.ndarrays of shapes (m,9+60) and (m,len(grid_x))
         data_x (network input) and the function values, not yet normalized
     '''
@@ -79,9 +62,8 @@ def get_data_x_dual(data_y, grid_x,
                                                                                   re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
                                                                                   coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
                                                                                   coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
-                                                                                  with_bounds=with_bounds, p0=p0,
-                                                                                  method=method, maxfev=maxfev, num_tries=num_tries, 
-                                                                                  xtol=xtol)
+                                                                                  with_bounds=with_bounds,
+                                                                                  method=method)
 
     # Calculate out_re for the different predicted pole configurations
     out_re_1r   = pole_curve_calc_dens_dual(pole_class=0, pole_params=params_1r,   grid_x=grid_x)
@@ -141,8 +123,7 @@ def get_data_x_single(data_y, grid_x,
                re_max, re_min, im_max, im_min, 
                coeff_re_max, coeff_re_min, 
                coeff_im_max, coeff_im_min,
-               with_bounds=True,
-               p0='random', method='lm', maxfev=1000000, num_tries=10, xtol = 1e-8):
+               method='lm', with_bounds=False):
     '''
     Generates the unstandardized network input from the pole curves (out_re)
     
@@ -156,29 +137,13 @@ def get_data_x_single(data_y, grid_x,
         
     re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
         Define a box. Parameter configurations are searched in this box if with_bounds=True
-        
-    with_bounds: bool, default=True
-        Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
-    
-    p0: 'default' or 'random', default='random'
-        Initial guesses for parameter search. 
-        
-        If 'default', the SciPy curve_fit default behaviour is used 
-        
-        If 'random', random guesses are used (use this if num_tries>1)
-        
+          
     method: str = 'trf', 'dogbox' or 'lm', default='lm'
         The optimization method
+
+    with_bounds: bool, default=False
+        Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
         
-    maxfev: int > 0 , default=1000000
-        Maximal number of function evaluations (see SciPy's curve_fit)
-        
-    num_tries: int > 0, default=10
-        The number of times the fit shall be tried (with varying initial guesses)
-        
-    xtol: float or list of floats, default 1e-8
-        Convergence criterion (see SciPy's curve_fit)    
-    
     returns: two numpy.ndarrays of shapes (m,9+60) and (m,len(grid_x))
         data_x (network input) and the function values, not yet normalized
     '''
@@ -191,9 +156,8 @@ def get_data_x_single(data_y, grid_x,
                                                                                   re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
                                                                                   coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
                                                                                   coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
-                                                                                  with_bounds=with_bounds, p0=p0,
-                                                                                  method=method, maxfev=maxfev, num_tries=num_tries, 
-                                                                                  xtol=xtol)
+                                                                                  with_bounds=with_bounds,
+                                                                                  method=method)
 
     # Calculate out_re for the different predicted pole configurations
     out_re_1r   = pole_curve_calc_dens_single(pole_class=0, pole_params=params_1r,   grid_x=grid_x)
@@ -253,8 +217,8 @@ def create_training_data_classifier(length, grid_x,
                                     re_max, re_min, im_max, im_min, 
                                     coeff_re_max, coeff_re_min, 
                                     coeff_im_max, coeff_im_min,
-                                    with_bounds, data_dir, 
-                                    p0, method, maxfev, num_tries, xtol):
+                                    data_dir, 
+                                    method, with_bounds):
     '''
     Creates training data for the NN classifier and saves it to the disk.
     
@@ -269,31 +233,15 @@ def create_training_data_classifier(length, grid_x,
     re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
         Define a box. Parameter configurations are searched in this box if with_bounds=True
         
-    with_bounds: list of bools
-        Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
-        
     data_dir: str
         Path to the folder, where data and standardization files shall be stored
-
-    p0: list of strings: 'default' or 'random'
-        Initial guesses for parameter search. 
-        
-        If 'default', the SciPy curve_fit default behaviour is used 
-        
-        If 'random', random guesses are used (use this if num_tries>1)
         
     method: list of strings: 'trf', 'dogbox' or 'lm'
         The optimization methods (multiple possible, this is, why this is a list)
+
+    with_bounds: list of bools
+        Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
         
-    maxfev: list of ints > 0 
-        Maximal number of function evaluations (see SciPy's curve_fit)
-        
-    num_tries: list of ints > 0
-        The number of times the fit shall be tried (with varying initial guesses) 
-       
-    xtol: list of floats or list of lists of floats
-        Convergence criterion (see SciPy's curve_fit)                         
-    
     returns: None
     '''
     # List of the pole classes
@@ -335,10 +283,6 @@ def create_training_data_classifier(length, grid_x,
     for i in range(len(method)): #use different SciPy fitting methods
         print('method: ', method[i])
         print('with_bounds: ', with_bounds[i])
-        print('p0: ', p0[i])
-        print('num_tries: ', num_tries[i])
-        print('maxfev: ', maxfev[i])
-        print('xtol: ', xtol[i])
         
         ####################   Dual Joined Fitting   ##########################
         
@@ -347,7 +291,7 @@ def create_training_data_classifier(length, grid_x,
                             coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
                             coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
                             with_bounds=with_bounds[i], 
-                            p0=p0[i], method=method[i], maxfev=maxfev[i], num_tries=num_tries[i], xtol=xtol[i])  
+                            method=method[i])  
         if i==0:
             data_x = data_x_i
         else:
@@ -367,7 +311,7 @@ def create_training_data_classifier(length, grid_x,
                                 coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
                                 coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
                                 with_bounds=with_bounds[i], 
-                                p0=p0[i], method=method[i], maxfev=maxfev[i], num_tries=num_tries[i], xtol=xtol[i])  
+                                method=method[i])  
             data_x = np.hstack([data_x, data_x_i])
         
         ## Get rid of infinities that occur if the sample couldn't be fitted

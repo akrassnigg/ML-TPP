@@ -9,6 +9,8 @@ Pytorch ANN architectures
 """
 import torch
 import torch.nn as nn
+import wandb
+import torch.nn.functional as F
 
 
 class FC1(torch.nn.Module):

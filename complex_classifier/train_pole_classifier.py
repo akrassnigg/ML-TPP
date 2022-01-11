@@ -16,6 +16,7 @@ import torch
 import wandb
 import argparse
 import numpy as np
+from pytorch_lightning.utilities.seed import seed_everything
 
 from lib.pole_classifier import Pole_Classifier, PoleDataModule_Classifier
 from lib.plotting_routines import classifier_plot
@@ -75,6 +76,8 @@ if __name__ == '__main__':
     drop_prob_6_classifier   = args.drop_prob_classifier
     '''
     ##########################################################################
+    #seed_everything(seed=1234)  #standard: 1234
+    #seeds = np.random.randint(0,1e6,size=[num_runs_classifier]) 
     
     net_hyperparameters = dict(
                 architecture = architecture_classifier,
@@ -126,78 +129,95 @@ if __name__ == '__main__':
     
     hyperparameters = {**net_hyperparameters, **other_hyperparameters}
     
-    for i in range(1):
+    num_runs = num_runs_classifier
+    test_accs   = []
+    test_losses = []
+    for i in range(num_runs): # average test_acc over multiple runs
+        #seed_everything(seed=seeds[i])
+    
         wandb.init(config=hyperparameters,
-                   entity="ml-tpp", project="pole_classifier",
-                   group="Classifier Experiment: Dual: Multiple Fitting Methods",
-                   notes="",
-                   tags = ["Classifier", "DataSet Experiment"])
+               entity="ml-tpp", project="pole_classifier",
+               group="Classifier DataSet Experiment: Dual: Maxfev and Retries 2",
+               notes="",
+               tags = ["Classifier", "DataSet Experiment"])
+
+        logger = WandbLogger() 
     
-        logger = WandbLogger()  
+        model = Pole_Classifier(
+                    **net_hyperparameters
+                    )
+                    
+        datamodule = PoleDataModule_Classifier(data_dir=data_dir_classifier, batch_size=batch_size_classifier, 
+                                    train_portion=train_portion_classifier, validation_portion=val_portion_classifier, test_portion=test_portion_classifier, 
+                                    num_use_data=num_use_data_classifier, use_indices=use_indices_classifier)
+        
+        checkpoint_callback1 = pl.callbacks.ModelCheckpoint(
+            dirpath = models_dir_classifier,
+            filename = 'name_' + str(wandb.run.name) + '_id_' + str(wandb.run.id) + '_' + str(i),
+            monitor="val_acc",
+            save_top_k=1, 
+            mode='max',
+            save_last= False
+        )
+        
+        checkpoint_callback2 = pl.callbacks.ModelCheckpoint(
+            monitor="val_acc",
+            save_top_k=1, 
+            mode='max',
+            save_last= True
+        )
+        
+        early_stop_callback = EarlyStopping(monitor="val_acc", min_delta=0.00, patience=es_patience_classifier, mode="max")
+        
+        trainer = pl.Trainer(
+            logger=logger,
+            val_check_interval=val_check_interval_classifier,
+            callbacks=[checkpoint_callback1, early_stop_callback], #, checkpoint_callback2
+            max_epochs=epochs_classifier,
+            gpus=1
+        )
     
-        num_runs = num_runs_classifier
-        test_accs   = []
-        test_losses = []
-        for i in range(num_runs): # average test_acc over multiple runs
-            model = Pole_Classifier(
-                        **net_hyperparameters
-                        )
-                        
-            datamodule = PoleDataModule_Classifier(data_dir=data_dir_classifier, batch_size=batch_size_classifier, 
-                                        train_portion=train_portion_classifier, validation_portion=val_portion_classifier, test_portion=test_portion_classifier, 
-                                        num_use_data=num_use_data_classifier, use_indices=use_indices_classifier)
-            
-            checkpoint_callback1 = pl.callbacks.ModelCheckpoint(
-                dirpath = models_dir_classifier,
-                filename = 'name_' + str(wandb.run.name) + '_id_' + str(wandb.run.id) + '_' + str(i),
-                monitor="val_loss",
-                save_top_k=1, 
-                mode='min',
-                save_last= False
-            )
-            
-            checkpoint_callback2 = pl.callbacks.ModelCheckpoint(
-                monitor="val_loss",
-                save_top_k=1, 
-                mode='min',
-                save_last= True
-            )
-            
-            early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=0.00, patience=es_patience_classifier, mode="min")
-            
-            trainer = pl.Trainer(
-                logger=logger,
-                val_check_interval=val_check_interval_classifier,
-                callbacks=[checkpoint_callback1, early_stop_callback], #, checkpoint_callback2
-                max_epochs=epochs_classifier,
-                gpus=1
-            )
+        trainer.logger.log_hyperparams(hyperparameters)
+        trainer.fit(model, datamodule=datamodule)
+        trainer.test(model, datamodule=datamodule, ckpt_path="best")
+        test_accs.append(trainer.logged_metrics["test_acc"].item())
+        test_losses.append(trainer.logged_metrics["test_loss"].item())
         
-            trainer.logger.log_hyperparams(hyperparameters)
-            trainer.fit(model, datamodule=datamodule)
-            trainer.test(model, datamodule=datamodule, ckpt_path="best")
-            test_accs.append(trainer.logged_metrics["test_acc"].item())
-            test_losses.append(trainer.logged_metrics["test_loss"].item())
-        test_acc_mean  = np.mean(test_accs)
-        test_loss_mean = np.mean(test_losses)
-        test_acc_mean_error  = np.std(test_accs)/np.sqrt(np.size(test_accs))
-        test_loss_mean_error = np.std(test_losses)/np.sqrt(np.size(test_losses))
-        if num_runs > 1:
-            wandb.log({'test_acc_mean': test_acc_mean})
-            wandb.log({'test_loss_mean': test_loss_mean})
-            wandb.log({'test_acc_mean_error': test_acc_mean_error})
-            wandb.log({'test_loss_mean_error': test_loss_mean_error})
-        
-        # Create classifier plot with (latest) test data
-        test_dataloader = datamodule.test_dataloader()
-        labels = test_dataloader.dataset[:][1]
-        data_x = torch.from_numpy(test_dataloader.dataset[:][0])
-        #preds  = trainer.predict(model, datamodule=datamodule)#, ckpt_path="best")
-        model.to(device='cpu')
-        preds = (torch.argmax(model(data_x), dim=1)).cpu().detach().numpy()
-        fig, _ = classifier_plot(labels=labels, predictions=preds, do_return=True)
-        wandb.log({"Classifier Plot": fig})
         wandb.finish()
+        
+    test_acc_mean  = np.mean(test_accs)
+    test_loss_mean = np.mean(test_losses)
+    test_acc_mean_error  = np.std(test_accs)/np.sqrt(np.size(test_accs))
+    test_loss_mean_error = np.std(test_losses)/np.sqrt(np.size(test_losses))
+    #if num_runs > 1:
+    #    wandb.log({'test_acc_mean': test_acc_mean})
+    #    wandb.log({'test_loss_mean': test_loss_mean})
+    #    wandb.log({'test_acc_mean_error': test_acc_mean_error})
+    #    wandb.log({'test_loss_mean_error': test_loss_mean_error})
+    
+    # write info about fits to txt file
+    dictionary = repr({
+              'architecture': architecture_classifier,
+              'num_hidden_units': hidden_dim_1_classifier,
+              'test_acc_mean': test_acc_mean,
+              'test_loss_mean': test_loss_mean,
+              'test_acc_mean_error': test_acc_mean_error,
+              'test_loss_mean_error': test_loss_mean_error
+              })
+    f = open( 'loss_info.txt', 'a' )
+    f.write( dictionary + '\n' )
+    f.close()
+
+    # Create classifier plot with (latest) test data
+    #test_dataloader = datamodule.test_dataloader()
+    #labels = test_dataloader.dataset[:][1]
+    #data_x = torch.from_numpy(test_dataloader.dataset[:][0])
+    ##preds  = trainer.predict(model, datamodule=datamodule)#, ckpt_path="best")
+    #model.to(device='cpu')
+    #preds = (torch.argmax(model(data_x), dim=1)).cpu().detach().numpy()
+    #fig, _ = classifier_plot(labels=labels, predictions=preds, do_return=True)
+    #wandb.log({"Classifier Plot": fig})
+    
 
 ###############################################################################
 ###############################################################################

@@ -5,7 +5,7 @@ project: "pole_classifier"
 name: "sweep_all_hparams"
 description: "sweep over all relevant training and network hyperparameters"
 metric:
-  name: test_acc_averaged
+  name: test_acc_mean
   goal: maximize
 parameters:
   hidden_dim_classifier:
