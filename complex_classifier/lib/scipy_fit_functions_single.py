@@ -52,7 +52,7 @@ def get_scipy_pred_single(pole_class, grid_x, data_y,
     xtol       = 1e-8
     num_tries  = 10
     if method == 'lm':
-        maxfev = [1000000, 10000000]
+        maxfev = [10000, 100000, 1000000, 10000000]
     else:
         maxfev = [1000, 10000, 100000, 1000000, 10000000] 
     
