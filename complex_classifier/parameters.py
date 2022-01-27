@@ -15,22 +15,27 @@ import os
 ##############################################################################
 ##############   General   ###################################################
 ##############################################################################
-# Data directory
+# data directory: leave unchanged
 data_dir = './data/' 
 
-# Sampling grid
+# sampling grid: the grid on the real axis, that shall be used to create the pole data curves
+#                import the grid you want to use or leave as is (then you need to inter-/extrapolate your data to our grid, see file test_data.py)
 standard_re = pd.read_csv(os.path.join(data_dir, "integration_gridpoints.csv")).to_numpy().reshape(-1)
+# imaginary parts of the grid: leave unchanged
 standard_im = np.linspace(0., 0., num=len(standard_re))
 
-# Range of real pole positions:
+# range of real pole positions: adjust to the values which seem suitable for your application
 re_max = -0.1
-re_min = -10.
+re_min = -10.0
 
-# Range of imaginary pole positions (for cc pole pairs only):
-im_max = 10.
+# range of imaginary pole positions (for cc pole pairs only): adjust to the values which seem suitable for your application
+im_max = 10.0
 im_min = 0.0
 
-# Range of absolute values of pole coefficients (for real and imag part of coeff):
+# range of absolute values of pole coefficients (for real and imag part of coeff): 
+#    adjust to the values which seem suitable for your application
+#    Warning: real poles are represented as cc pole pairs with zero imaginary parts -> 
+#             For real poles, the actual coefficient is twice the reported value. (e.g.: 2/x = (1+0*i)/(x+0*i) + (1-0*i)/(x-0*i))
 coeff_re_max = 1.0
 coeff_re_min = 0.0
 coeff_im_max = 1.0
@@ -39,7 +44,7 @@ coeff_im_min = 0.0
 ##############################################################################
 ##############   Classifier   ################################################
 ##############################################################################
-# Directories
+# Directories: leave unchanged
 dir_classifier        = './data_classifier/'
 data_dir_classifier   = dir_classifier + 'data/'
 log_dir_classifier    = dir_classifier + 'logs/'
@@ -48,52 +53,57 @@ models_dir_classifier = dir_classifier + 'models/'
 ##############################################
 ############### Data Creation ################
 ##############################################
-# Number of data points to be created: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class)
-n_examples_classifier = 20
+# number of data points to be created in the data generation
+n_examples_classifier = 100000
 
-# Scipy curve_fit parameters
-# Fitting method
+# SciPy curve_fit parameters: in the data generation, pole curves are fitted to pole functions and the MSEs and fitted parameters form the ANN input vector
+# fitting methods: select SciPy fitting methods  'lm', 'trf' or 'dogbox' (multiple choices of the same are possible)
 method_classifier      = ['lm', 'lm', 'trf', 'dogbox', 'dogbox'] 
-# Use parameter boundaries?
+# use parameter boundaries for the fitting methods: for each fitting methods, it must be specified, whether boundaries are
+#       to be used or not. Note: 'lm' cannot use boundaries.
 with_bounds_classifier = [False, False, True, True, True] 
 
 ##############################################
 ###############   Training   #################
 ##############################################
-# Number of data points to be used: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
-num_use_data_classifier = 0
-# Indices of data_x that shall be used to train the classifier
-use_indices_classifier  = np.hstack([   np.arange(0*237, 5*237)  ])
-input_name_classifier   = 'lm_wb=Fx2+trf_wb=T+dogbox_wb=Tx2'
+# info about the input to be logged: leave unchanged
+temp = [str(i) for i in with_bounds_classifier]
+input_name_classifier = [a+'_wb='+b for a,b in zip(method_classifier,temp)]
+input_name_classifier = '+'.join(input_name_classifier)
 
-# Data split
+# data split: set to desired values
 train_portion_classifier = 0.8
 val_portion_classifier   = 0.1
 test_portion_classifier  = 0.1
 
-# Network hyperparameters
-# ANN architecture
-architecture_classifier = 'FC3'
-in_features_classifier  = len(use_indices_classifier)
+# ANN architecture: select from FC1-FC6 (fully connected feedforward ANN)
+architecture_classifier = 'FC2'
+# in and out features: leave unchanged
+in_features_classifier  = 237*len(method_classifier)
 out_features_classifier = 9
-hidden_dim_1_classifier = 8
-hidden_dim_2_classifier = 8
-hidden_dim_3_classifier = 8
+# specify the desired number of hidden units per layer
+hidden_dim_1_classifier = 64
+hidden_dim_2_classifier = 64
+hidden_dim_3_classifier = 0
 hidden_dim_4_classifier = 0
 hidden_dim_5_classifier = 0
 hidden_dim_6_classifier = 0
  
-# Training hyperparameters
+# training hyperparameters
+# optimizer: select between Adam, AdamW, Adagrad, Adadelta, RMSprop and SGD
 optimizer_classifier          = 'Adam'
-batch_size_classifier         = 32
+# specify the batch size and learning rate
+batch_size_classifier         = 512
 learning_rate_classifier      = 1e-3
-# Maximal number of epochs
+# maximal number of epochs: set to lower value, if needed (by default, early stopping is used to stop the runs)
 epochs_classifier             = int(1e15)
+# validation check intervall = 1/ (number of validation checks per training epoch): set to desired value 
 val_check_interval_classifier = 0.1
-# Early Stopping patience
-es_patience_classifier        = 100
+# early stopping patience: set to desired value
+es_patience_classifier        = 1000
 
-# Regularization
+# regularization: set weight decay and dropout per hidden layer to the desired values 
+#                 see lib/architectures.py for details about dropout implementation
 weight_decay_classifier = 0.0    
 drop_prob_1_classifier  = 0.0   
 drop_prob_2_classifier  = 0.0   
@@ -102,16 +112,16 @@ drop_prob_4_classifier  = 0.0
 drop_prob_5_classifier  = 0.0   
 drop_prob_6_classifier  = 0.0   
 
-# Do multiple runs and average test_acc over them?
-num_runs_classifier           = 20
+# do multiple runs?
+num_runs_classifier     = 1
 
 ##############################################################################
 ##############   Regressors   ################################################
 ##############################################################################
-# Class to be learned
+# class to be learned
 class_regressor = 7
 
-# Directories
+# directories
 regressor_subdirs = ['0-1r',
                    '1-1c',
                    '2-2r',
@@ -130,29 +140,29 @@ models_dir_regressor = dir_regressor + 'models/'
 ##############################################
 ############### Data Creation ################
 ##############################################
-# Number of data points
+# number of data points
 n_examples_regressor = 1000000
 
 ##############################################
 ###############   Training   #################
 ##############################################
-# Number of data points to be used: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
+# number of data points to be used: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
 num_use_data_regressor = 0
-# After how many epochs shall the data be updated
+# after how many epochs shall the data be updated
 num_epochs_use_regressor     = int(1e15)  
 
-# Training mode: 0: start from scratch, 1: resume training from checkpoint
+# training mode: 0: start from scratch, 1: resume training from checkpoint
 training_step_regressor      = 0 
-# Name of the ckpt to resume from (must be inside models folder of the regressor)
+# name of the ckpt to resume from (must be inside models folder of the regressor)
 name_ckpt_regressor          = 'name.ckpt' 
 
-# Data split
+# data split
 train_portion_regressor = 0.98
 val_portion_regressor   = 0.01
 test_portion_regressor  = 0.01
 
-# Network hyperparameters
-# ANN Architecture
+# network hyperparameters
+# ANN architecture
 architecture_regressor = 'FC6'
 out_list               = [3,6, 6,9,12, 9,12,15,18]
 out_features_regressor = out_list[class_regressor]  # depends on the pole class
@@ -164,17 +174,17 @@ hidden_dim_4_regressor = hidden_dim_3_regressor
 hidden_dim_5_regressor = hidden_dim_4_regressor
 hidden_dim_6_regressor = hidden_dim_5_regressor 
 
-# Training hyperparameters
+# training hyperparameters
 optimizer_regressor          = 'Adam'
 batch_size_regressor         = 1000
 learning_rate_regressor      = 1e-3   
-# Maximal number of epochs
+# maximal number of epochs
 epochs_regressor             = int(1e15)
 val_check_interval_regressor = 0.1
-# Early Stopping patience
+# early stopping patience
 es_patience_regressor        = 20
 
-# Loss
+# loss
 parameter_loss_type       = 'mse'
 reconstruction_loss_type  = 'mse'
 parameter_loss_coeff      = 1.0
@@ -182,7 +192,7 @@ reconstruction_loss_coeff = 0.1
 loss_name_regressor = (str(parameter_loss_coeff) + '*parameter_loss_' + parameter_loss_type + ' + ' +
                        str(reconstruction_loss_coeff) + '*reconstruction_loss_' + reconstruction_loss_type )
 
-# Regularization
+# regularization
 weight_decay_regressor = 0.0
 drop_prob_1_regressor  = 0.0   
 drop_prob_2_regressor  = 0.0   
@@ -191,7 +201,7 @@ drop_prob_4_regressor  = 0.0
 drop_prob_5_regressor  = 0.0   
 drop_prob_6_regressor  = 0.0 
 
-# Do multiple runs and average test_loss over them?
+# do multiple runs?
 num_runs_regressor           = 1
 
 

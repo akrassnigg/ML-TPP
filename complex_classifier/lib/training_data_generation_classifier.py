@@ -218,14 +218,15 @@ def create_training_data_classifier(length, grid_x,
                                     coeff_re_max, coeff_re_min, 
                                     coeff_im_max, coeff_im_min,
                                     data_dir, 
-                                    method, with_bounds):
+                                    method, with_bounds, 
+                                    stage = 'creation', application_data = None):
     '''
-    Creates training data for the NN classifier and saves it to the disk.
+    Creates training data for the NN classifier and saves it to the disk, or returns it, if stage=="application"
     
     Data is created by performing SciPy fits with different methods, calculating MSEs and concatenating everything
     
-    length: int>0 or a list of ints>=0
-        The number of samples to be generated (per class if length is a list)
+    length: int>0 
+        The number of samples to be generated 
         
     grid_x: numpy.ndarray of shape (n,) or (1,n)
         Gridpoints, where the function/pole configuration shall be evaluated
@@ -241,42 +242,53 @@ def create_training_data_classifier(length, grid_x,
 
     with_bounds: list of bools
         Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
+    
+    stage: str: 'creation' or 'application'  
+        'creation': Create new curves and data_x
+        'application': Create data_x from curves passed as application_data
         
-    returns: None
+    application_data: numpy.ndarray of shape (n,) or (m,n)
+        Data curves to create data_x for
+    
+    returns: None, if stage=='creation'
+             numpy.ndarray of shape (m,n), if stage=='application'
     '''
-    # List of the pole classes
-    pole_classes = [0,1,2,3,4,5,6,7,8]
-    
-    if isinstance(length, list):
-        nums = length
-    else:
+    if stage == 'creation':
+        # List of the pole classes
+        pole_classes = [0,1,2,3,4,5,6,7,8]
+        
         # calculate the number of samples per class
-        num  = int(np.floor(length/len(pole_classes)))
-        nums = [num for i in range(len(pole_classes))]
-    
-    # out_re will contain the real part of the pole curves; labels is the labels (0,1,2,..8)
-    out_re = []
-    labels_and_params = []
-    for pole_class in pole_classes:
-        # Get pole configurations of the current pole class and append them to out_re and labels
-        params = get_train_params_dual(pole_class=pole_class, m=nums[pole_class],
-                                  re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
-                                  coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
-                                  coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
-        out_re.append(pole_curve_calc_dual(pole_class=pole_class, pole_params=params, grid_x=grid_x))
+        length = np.floor(length/2) #due to pole swapping
+        num    = int(np.floor(length/len(pole_classes)))
         
-        # also add the exact parameters to the label, because we may use them later (e.g. for selecting certain samples)
-        labels_and_params.append(np.hstack([np.ones([params.shape[0], 1])*pole_class, params]))
-        
-    # Convert lists to numpy arrays
-    out_re = np.vstack(out_re)
-    # add padding to the labels/params arrays
-    max_coll = max( [arr.shape[1] for arr in labels_and_params] )
-    for i in range(len(labels_and_params)):
-        fillup = int(max_coll - labels_and_params[i].shape[1])
-        labels_and_params[i] = np.hstack([labels_and_params[i], np.zeros([labels_and_params[i].shape[0], fillup])])
-    labels_and_params = np.vstack(labels_and_params)
-    print('Maximum number of samples to be created: ', len(labels_and_params))
+        # out_re will contain the real part of the pole curves; labels is the labels (0,1,2,..8)
+        out_re = []
+        labels_and_params = []
+        for pole_class in pole_classes:
+            # Get pole configurations of the current pole class and append them to out_re and labels
+            params = get_train_params_dual(pole_class=pole_class, m=num,
+                                      re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                                      coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                                      coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min)
+            out_re.append(pole_curve_calc_dual(pole_class=pole_class, pole_params=params, grid_x=grid_x))
+            
+            # also add the exact parameters to the label, because we may use them later (e.g. for selecting certain samples)
+            labels_and_params.append(np.hstack([np.ones([params.shape[0], 1])*pole_class, params]))
+            
+        # Convert lists to numpy arrays
+        out_re = np.vstack(out_re)
+        # add padding to the labels/params arrays
+        max_coll = max( [arr.shape[1] for arr in labels_and_params] )
+        for i in range(len(labels_and_params)):
+            fillup = int(max_coll - labels_and_params[i].shape[1])
+            labels_and_params[i] = np.hstack([labels_and_params[i], np.zeros([labels_and_params[i].shape[0], fillup])])
+        labels_and_params = np.vstack(labels_and_params)
+        print('Maximum number of samples to be created: ', len(labels_and_params))
+    elif stage == 'application':
+        out_re            = np.atleast_2d(application_data)
+        labels_and_params = np.zeros((out_re.shape[0],18+1)) # does not contain info. Just has to be created so the code below does not crash.
+    else:
+        raise ValueError('"stage" must be "creation" or "application"!')
 
     ###########################################################################
     # Get data_x
@@ -319,15 +331,17 @@ def create_training_data_classifier(length, grid_x,
                                     data_x, out_re, labels_and_params)
         #######################################################################
     if len(method)==0:
-        data_x = out_re
-    else:
-        data_x = np.hstack([data_x, out_re])
+        data_x = None
+    
     ###########################################################################
+    #Swap Poles around to get twice the data for free
+    
     # Seperate labels and params array
     params = labels_and_params[:,1:]
     labels = labels_and_params[:,0].reshape(-1)
     
     #############   Swap Poles around to create more data   ###################
+    # Swap data_x
     data_x_swapped = data_x.copy()
     for i in range(len(method)):
         # Swap Poles in Joined Fits
@@ -341,16 +355,17 @@ def create_training_data_classifier(length, grid_x,
         data_x_swapped[:, np.array([ 66,67,68,  69,70,71,72,73,74,  75,76,77,78,79,80 ]) + i*237 ]          = data_x_swapped[:, np.array([ 66,68,67,  69,70,73,74,71,72,  75,76,79,80,77,78 ]) + i*237 ]
         data_x_swapped[:, np.array([ 81,82,83,84,85,86,  87,88,89,90,91,92,  93,94,95,96,97,98 ]) + i*237 ] = data_x_swapped[:, np.array([ 81,82,85,86,83,84,  87,88,91,92,89,90,  93,94,97,98,95,96 ]) + i*237 ]
         # Swap the Separate Fits
-        tmp                                         = data_x_swapped[:,  99 + i*237:167 + i*237 ].copy()
+        tmp                                         = data_x_swapped[:,  99 + i*237:167 + i*237 ]
         data_x_swapped[:,  99 + i*237:167 + i*237 ] = data_x_swapped[:, 168 + i*237:236 + i*237 ]
         data_x_swapped[:, 168 + i*237:236 + i*237 ] = tmp
-    # Swap the curves
-    tmp                                                 = data_x_swapped[:,  -2*len(grid_x):-1*len(grid_x) ].copy()
-    data_x_swapped[:,  -2*len(grid_x):-1*len(grid_x) ]  = data_x_swapped[:,  -1*len(grid_x): ]
-    data_x_swapped[:,  -1*len(grid_x): ]                = tmp
-    
-    # Combine data_x and data_x_swapped
     data_x = np.vstack([data_x, data_x_swapped])
+        
+    # Swap the curves
+    out_re_swapped = out_re.copy()
+    tmp                                = out_re_swapped[:, 0: len(grid_x) ]
+    out_re_swapped[:, 0: len(grid_x) ] = out_re_swapped[:,  len(grid_x):  ]
+    out_re_swapped[:,  len(grid_x):  ] = tmp
+    out_re = np.vstack([out_re, out_re_swapped])
     
     # Add Swaped Poles to Params Array
     params_swapped = params.copy()
@@ -361,20 +376,25 @@ def create_training_data_classifier(length, grid_x,
     labels = np.hstack([labels,labels])
     
     ###########################################################################
-    # Standardize Inputs
-    data_x = std_data_new(data_x, with_mean=True, std_path=data_dir)
-    
-    # Save training data
-    np.save(os.path.join(data_dir, 'various_poles_data_classifier_x.npy'), data_x)
-    np.save(os.path.join(data_dir, 'various_poles_data_classifier_y.npy'), labels)
-    np.save(os.path.join(data_dir, 'various_poles_data_classifier_params.npy'), params)
-    print("Successfully saved x data of shape ", np.shape(data_x))
-    print("Successfully saved y data of shape ", np.shape(labels))
-    print("Successfully saved params data of shape ", np.shape(params))
-    print('Samples per Class:')
-    for i in range(9):
-        print(str(i) + ': ', np.sum(labels==i))
-    return
+    if stage == 'creation':
+        # Standardize data_x
+        data_x = std_data_new(data_x, with_mean=True, std_path=data_dir)
+        
+        # Save training data
+        np.save(os.path.join(data_dir, 'pole_classifier_data_x.npy'), data_x)
+        np.save(os.path.join(data_dir, 'pole_classifier_data_y.npy'), labels)
+        np.save(os.path.join(data_dir, 'pole_classifier_curves.npy'), out_re)
+        np.save(os.path.join(data_dir, 'pole_classifier_params.npy'), params)
+        print("Successfully saved x data of shape ", np.shape(data_x))
+        print("Successfully saved y data of shape ", np.shape(labels))
+        print("Successfully saved curve data of shape ", np.shape(out_re))
+        print("Successfully saved params data of shape ", np.shape(params))
+        print('Samples per Class:')
+        for i in range(9):
+            print(str(i) + ': ', np.sum(labels==i))
+        return
+    elif stage == 'application':
+        return data_x   #Note: returns two rows for each row in application_data, due to the pole swapping
 
     
 

@@ -14,24 +14,24 @@ import scipy
 
 from lib.standardization_functions import std_data
 from lib.pole_classifier import Pole_Classifier
-from lib.training_data_generation_classifier import get_data_x
+from lib.training_data_generation_classifier import create_training_data_classifier
+
 
 def get_classifier_preds(grid_x, data_y, 
                          re_max, re_min, im_max, im_min, 
                          coeff_re_max, coeff_re_min, 
                          coeff_im_max, coeff_im_min,
                          do_std, model_path, 
-                         with_bounds, p0, method, 
-                         maxfev, num_tries, xtol):
+                         with_bounds, method):
     '''
     Get predictions from trained Pole Classifier(s) 
     
     grid_x: ndarray of shape (n,) or (1,n), where n is the number of gridpoints
         Gridpoints
     
-    data_y: ndarray of shape (n,) or (1,n), where n is the number of gridpoints
+    data_y: ndarray of shape (n,) or (m,n), where n is the number of gridpoints
         Function Values
-    
+
     re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
         Define a box. Parameter configurations are searched in this box if with_bounds=True
     
@@ -46,37 +46,26 @@ def get_classifier_preds(grid_x, data_y,
     
     with_bounds: bool
         Shall the Scipy fit's parameters be contrained by bounds determined by coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min, re_min, re_max, im_min, im_max?
-    
-    p0: 'default' or 'random'
-        Initial guesses for parameter search. 
-        
-        If 'default', the SciPy curve_fit default behaviour is used 
-        
-        If 'random', random guesses are used (use this if num_tries>1)
-        
+
     method: str = 'trf', 'dogbox' or 'lm'
         The optimization method
-        
-    maxfev: int > 0
-        Maximal number of function evaluations (see SciPy's curve_fit)
-        
-    num_tries: int > 0
-        The number of times the fit shall be tried (with varying initial guesses)
-        
-    xtol: float or list of floats
-        Convergence criterion (see SciPy's curve_fit)    
-    
-    returns: int, int, ndarray of shape (l,), where l is the number of checkpoints in the "models" subdirectory
-        Class Predictions: Hard Averaging, Soft Averaging, Array with Predictions from the individual Checkpoints
+
+    returns: list of lists containing: int, int, ndarray of shape (l,), where l is twice the number of checkpoints in the "models" subdirectory, ndarray of shape (n,)
+        Hard Averaging, Soft Averaging, Array with Predictions from the individual Checkpoints (two per checkpoint due to pole swap), the corresponding data curve
     '''
+    data_y = np.atleast_2d(data_y)
+    
     # Data Preparation
     # Get data_x
-    data_x, _ = get_data_x(data_y=data_y, grid_x=grid_x, 
-                        re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
-                        coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
-                        coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
-                        with_bounds=with_bounds, p0=p0,
-                        method=method, maxfev=maxfev, num_tries=num_tries, xtol=xtol) 
+    data_x = create_training_data_classifier(length=None, grid_x=grid_x, 
+                                        re_max=re_max, re_min=re_min, im_max=im_max, im_min=im_min, 
+                                        coeff_re_max=coeff_re_max, coeff_re_min=coeff_re_min, 
+                                        coeff_im_max=coeff_im_max, coeff_im_min=coeff_im_min,
+                                        data_dir=None, 
+                                        method=method, with_bounds=with_bounds, 
+                                        stage = 'application', application_data = data_y)
+    # NOTE: from each curve in data_y, we get two lines in data_x, due to the pole swapping in create_training_data_classifier
+    
     # Apply standardization
     if do_std:
         data_x = std_data(data=data_x, std_path=os.path.join(model_path, 'data/'), with_mean=True)
@@ -92,18 +81,28 @@ def get_classifier_preds(grid_x, data_y,
     class_pred = np.array(class_pred)
     class_pred = np.swapaxes(class_pred,0,1)
     
-    # Step 3a: Hard Averaging - Take most frequent prediction (=mode)
-    class_pred_hard = np.argmax(class_pred, axis=2)
-    class_pred_hard
-    class_pred_hard = scipy.stats.mode(class_pred_hard, axis=1)[0] 
-    class_pred_hard = torch.from_numpy(class_pred_hard)
+    num_curves = data_y.shape[0]
+    preds = []
+    for i in range(num_curves): # run over data curves
+        # Combine the different predictions (from pole swapping) of each data curve into one
+        class_pred_i = np.concatenate([class_pred[i,:,:], class_pred[i+num_curves]],axis=0)
+        class_pred_i = np.expand_dims(class_pred_i,0)
+        # Get the individual predictions
+        individual_preds = np.argmax(class_pred_i, axis=2).reshape(-1)
     
-    # Step 3b: Soft Averaging - sum over probabilities and the take argmax
-    class_pred_soft = np.sum(class_pred, axis=1)
-    class_pred_soft = np.argmax(class_pred_soft, axis=1).reshape((-1,1))
-    class_pred_soft = torch.from_numpy(class_pred_soft)
-    
-    return class_pred_soft.item(), class_pred_hard.item(), np.argmax(class_pred, axis=2).reshape(-1)
+        # Hard Averaging - Take most frequent prediction (=mode)
+        class_pred_hard = np.argmax(class_pred_i, axis=2)
+        class_pred_hard = scipy.stats.mode(class_pred_hard, axis=1)[0].item() 
+        
+        # Soft Averaging - sum over probabilities and the take argmax
+        class_pred_soft = np.sum(class_pred_i, axis=1)
+        class_pred_soft = np.argmax(class_pred_soft, axis=1).reshape((-1,1)).item()
+        
+        preds.append({'Soft_Average_Pred': class_pred_soft, 
+                      'Hard_Average_Pred': class_pred_hard, 
+                      'Individual_Preds': individual_preds, 
+                      'Data_Curve': data_y[i]})
+    return preds
 
 
 
