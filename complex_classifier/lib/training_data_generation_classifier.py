@@ -283,7 +283,7 @@ def create_training_data_classifier(length, grid_x,
             fillup = int(max_coll - labels_and_params[i].shape[1])
             labels_and_params[i] = np.hstack([labels_and_params[i], np.zeros([labels_and_params[i].shape[0], fillup])])
         labels_and_params = np.vstack(labels_and_params)
-        print('Maximum number of samples to be created: ', len(labels_and_params))
+        print('Maximum number of samples to be created: ', len(labels_and_params)*2)
     elif stage == 'application':
         out_re            = np.atleast_2d(application_data)
         labels_and_params = np.zeros((out_re.shape[0],18+1)) # does not contain info. Just has to be created so the code below does not crash.
