@@ -151,30 +151,36 @@ if __name__ == '__main__':
     
         trainer.logger.log_hyperparams(hyperparameters)
         trainer.fit(model=model, datamodule=datamodule)
-        trainer.test(datamodule=datamodule, ckpt_path="best")
-        test_accs.append(trainer.logged_metrics["test_acc"].item())
-        test_losses.append(trainer.logged_metrics["test_loss"].item())
         
+        # Manually do test step     
+        test_data_X = torch.from_numpy(datamodule.all_data.test_data_X)
+        test_data_Y = datamodule.all_data.test_data_Y.reshape(-1,1)
+        model = Pole_Classifier.load_from_checkpoint(checkpoint_path=models_dir_classifier+name+'.ckpt')
+        model.eval()
+        model.to(device='cpu')
+        preds = (torch.argmax(model(test_data_X), dim=1)).cpu().detach().numpy().reshape(-1,1)
+        test_acc = np.mean(preds==test_data_Y)
+        trainer.logger.log_metrics({'test_acc': test_acc})
+        print('-------------------------------------------')
+        print('Test Accuracy: ', test_acc)
+        print('-------------------------------------------')
+        
+        test_accs.append(test_acc)
         #wandb.finish()
         
-    test_acc_mean  = np.mean(test_accs)
-    test_loss_mean = np.mean(test_losses)
+    test_acc_mean        = np.mean(test_accs)
     test_acc_mean_error  = np.std(test_accs)/np.sqrt(np.size(test_accs))
-    test_loss_mean_error = np.std(test_losses)/np.sqrt(np.size(test_losses))
     
     # write info about fit(s) to txt file
     if num_runs > 1:
         dictionary = repr({
                   'test_acc_mean': test_acc_mean,
-                  'test_loss_mean': test_loss_mean,
                   'test_acc_mean_error': test_acc_mean_error,
-                  'test_loss_mean_error': test_loss_mean_error,
                   'duration': time.time() - time1
                   })
     else:
         dictionary = repr({
                   'test_acc_mean': test_acc_mean,
-                  'test_loss_mean': test_loss_mean,
                   'duration': time.time() - time1
                   })
     f = open( 'run_info.txt', 'a' )
@@ -182,12 +188,7 @@ if __name__ == '__main__':
     f.close()
 
     # Create classifier plot with (latest) test data
-    test_dataloader = datamodule.test_dataloader()
-    labels = test_dataloader.dataset[:][1]
-    data_x = torch.from_numpy(test_dataloader.dataset[:][0])
-    model.to(device='cpu')
-    preds = (torch.argmax(model(data_x), dim=1)).cpu().detach().numpy()
-    fig, _ = classifier_plot(labels=labels, predictions=preds, do_return=True)
+    fig, _ = classifier_plot(labels=test_data_Y, predictions=preds, do_return=True)
     plt.show()
     
 

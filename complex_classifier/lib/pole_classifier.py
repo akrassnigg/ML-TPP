@@ -16,7 +16,7 @@ from torch import optim
 from torch.utils.data import Dataset, DataLoader, random_split
 import pytorch_lightning as pl
 from pytorch_lightning.core import LightningModule
-from pytorch_lightning.metrics.functional import accuracy
+from torchmetrics.functional import accuracy
 from torch.utils.data import WeightedRandomSampler
 
 from lib.architectures import FC1, FC2, FC3, FC4, FC5, FC6, FC7, FC8, FC9, FC10, Conv3FC1
@@ -35,20 +35,36 @@ class PoleDataSet_Classifier(Dataset):
     """
     
     
-    def __init__(self, data_dir):
-        self.data_X = np.load(os.path.join(data_dir, "pole_classifier_data_x.npy"), allow_pickle=True).astype('float32')
-        self.data_Y = np.load(os.path.join(data_dir, "pole_classifier_data_y.npy"), allow_pickle=True).astype('int64').reshape((-1,1))                         
+    def __init__(self, data_dir, test_portion):
+        data_X = np.load(os.path.join(data_dir, "pole_classifier_data_x.npy"), allow_pickle=True).astype('float32')
+        data_Y = np.load(os.path.join(data_dir, "pole_classifier_data_y.npy"), allow_pickle=True).astype('int64').reshape((-1,1))                         
         
-        print("Checking shape of loaded data: X: ", np.shape(self.data_X))
-        print("Checking shape of loaded data: y: ", np.shape(self.data_Y))
+        print("Checking shape of loaded data: X: ", np.shape(data_X))
+        print("Checking shape of loaded data: y: ", np.shape(data_Y))
+        self.real_len = len(data_Y)
         
+        # split off testing data
+        #seed_afterward = np.random.randint(low=0, high=1e3)
+        #np.random.seed(1234)
+        num_data = len(data_Y)
+        indices = np.arange(num_data)
+        np.random.shuffle(indices)
+        
+        test_indices      = indices[0:int(num_data*test_portion)]
+        train_val_indices = indices[int(num_data*test_portion):]
+        #np.random.seed(seed_afterward)
+        self.train_val_data_X = data_X[train_val_indices]
+        self.train_val_data_Y = data_Y[train_val_indices]
+        
+        self.test_data_X = data_X[test_indices]
+        self.test_data_Y = data_Y[test_indices]
+  
     def __len__(self):
-        num_of_data_points = len(self.data_X)
-        print("Successfully loaded pole training data of length: ", num_of_data_points)
+        num_of_data_points = len(self.train_val_data_Y)
         return num_of_data_points
 
     def __getitem__(self, idx):
-        return self.data_X[idx], self.data_Y[idx]
+        return self.train_val_data_X[idx], self.train_val_data_Y[idx]
 
 
 class PoleDataModule_Classifier(pl.LightningDataModule):
@@ -73,31 +89,27 @@ class PoleDataModule_Classifier(pl.LightningDataModule):
         self.test_portion = test_portion
 
     def setup(self, stage):
-        all_data = PoleDataSet_Classifier(self.data_dir)
+        self.all_data = PoleDataSet_Classifier(self.data_dir, test_portion=self.test_portion)
             
-        num_data = len(all_data)
+        num_data = self.all_data.real_len
         print("Length of all_data: ", num_data)
         
-        self.training_number = int(self.train_portion*num_data)
-        self.validation_number = int(self.validation_portion*num_data)
-        self.test_number = int(num_data - self.training_number - self.validation_number)      
-        print("Data splits: ", self.training_number, self.validation_number, self.test_number, num_data)
+        self.test_number       = int(self.test_portion*num_data)
+        self.val_number = int(self.validation_portion*num_data)
+        self.train_number       = int(num_data - self.test_number - self.val_number)      
+        print("Data splits: ", self.train_number, self.val_number, self.test_number, num_data)
         
-        train_part, val_part, test_part = random_split(all_data, [self.training_number, self.validation_number, self.test_number]
+        train_part, val_part  = random_split(self.all_data, [self.train_number, self.val_number]
                                                        )#, generator=torch.Generator().manual_seed(1234))
 
         self.train_dataset = train_part
         self.val_dataset = val_part
-        self.test_dataset = test_part
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset, batch_size=self.batch_size)
-
-    def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size)
 
     
 ##############################################################################
@@ -163,18 +175,6 @@ class Pole_Classifier(LightningModule):
         self.log('val_acc', acc, on_step=False, on_epoch=True)
         self.log('val_loss', val_loss, on_step=False, on_epoch=True, prog_bar=True)               
         return val_loss
-
-    def test_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        y = y.view(-1)
-        
-        test_loss = F.cross_entropy(y_hat, y)
-        preds = torch.argmax(y_hat, dim=1)
-        acc = accuracy(preds, y)
-        self.log('test_acc', acc, on_step=False, on_epoch=True)
-        self.log('test_loss', test_loss, on_step=False, on_epoch=True)
-        return test_loss
 
     def configure_optimizers(self):
         if self.hparams.optimizer == 'Adam':
