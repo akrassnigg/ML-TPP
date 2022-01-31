@@ -32,7 +32,7 @@ re_min = -10.0
 im_max = 10.0
 im_min = 0.0
 
-# range of absolute values of pole coefficients (for real and imag part of coeff): 
+# range of absolute (!, the actual values are inside +- this interval) values of pole coefficients (for real and imag part of coeff): 
 #    adjust to the values which seem suitable for your application
 #    Warning: real poles are represented as cc pole pairs with zero imaginary parts -> 
 #             For real poles, the actual coefficient is twice the reported value. (e.g.: 2/x = (1+0*i)/(x+0*i) + (1-0*i)/(x-0*i))
@@ -119,7 +119,7 @@ num_runs_classifier     = 1
 ##############   Regressors   ################################################
 ##############################################################################
 # class to be learned
-class_regressor = 7
+class_regressor = 8
 
 # directories
 regressor_subdirs = ['0-1r',
@@ -146,20 +146,10 @@ n_examples_regressor = 1000000
 ##############################################
 ###############   Training   #################
 ##############################################
-# number of data points to be used: can be a single int or a list of ints, one for each class (which can also be 0 to drop the class). Set to 0 to use all data available
-num_use_data_regressor = 0
-# after how many epochs shall the data be updated
-num_epochs_use_regressor     = int(1e15)  
-
-# training mode: 0: start from scratch, 1: resume training from checkpoint
-training_step_regressor      = 0 
-# name of the ckpt to resume from (must be inside models folder of the regressor)
-name_ckpt_regressor          = 'name.ckpt' 
-
 # data split
-train_portion_regressor = 0.98
-val_portion_regressor   = 0.01
-test_portion_regressor  = 0.01
+train_portion_regressor = 0.9
+val_portion_regressor   = 0.05
+test_portion_regressor  = 0.05
 
 # network hyperparameters
 # ANN architecture
@@ -176,13 +166,13 @@ hidden_dim_6_regressor = hidden_dim_5_regressor
 
 # training hyperparameters
 optimizer_regressor          = 'Adam'
-batch_size_regressor         = 1000
+batch_size_regressor         = 1024
 learning_rate_regressor      = 1e-3   
 # maximal number of epochs
 epochs_regressor             = int(1e15)
 val_check_interval_regressor = 0.1
 # early stopping patience
-es_patience_regressor        = 20
+es_patience_regressor        = 100
 
 # loss
 parameter_loss_type       = 'mse'
@@ -202,7 +192,7 @@ drop_prob_5_regressor  = 0.0
 drop_prob_6_regressor  = 0.0 
 
 # do multiple runs?
-num_runs_regressor           = 1
+num_runs_regressor           = 5
 
 
 

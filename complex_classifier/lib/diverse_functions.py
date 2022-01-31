@@ -10,19 +10,39 @@ A bunch of functions to be used for the pole classifier and regressor
 import numpy as np
 
 
-def mse(arr1, arr2, ax):
+def mse(arr1, arr2, ax=None):
     '''
-    Calculate the MSE between two arrays along a given axis
+    Calculate the MSE between two arrays along a given axis or in total
     
     arr1, arr2: numpy.ndarrays of the same shape
     
-    ax: int
+    ax: int or None
         The axis along which the MSE shall be computed
     
-    returns: numpy.ndarray with shape of arr1, reduced by axis=ax
+    returns: numpy.ndarray with shape of arr1, reduced by axis=ax or a single float, if ax=None
         The MSEs
     '''
-    return np.mean((arr1 - arr2)**2,axis=ax)
+    if ax is None:
+        return np.mean((arr1 - arr2)**2)
+    else:
+        return np.mean((arr1 - arr2)**2,axis=ax)
+
+def mae(arr1, arr2, ax=None):
+    '''
+    Calculate the MAE between two arrays along a given axis or in total
+    
+    arr1, arr2: numpy.ndarrays of the same shape
+    
+    ax: int or None
+        The axis along which the MAE shall be computed
+    
+    returns: numpy.ndarray with shape of arr1, reduced by axis=ax or a single float, if ax=None
+        The MAEs
+    '''
+    if ax is None:
+        return np.mean(np.abs(arr1 - arr2))
+    else:
+        return np.mean(np.abs(arr1 - arr2),axis=ax)
 
 
 def drop_not_finite_rows(*arrs):

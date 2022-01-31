@@ -51,7 +51,7 @@ def classifier_plot(labels, predictions, norm_ax=0, do_return=False):
         count = normalize(count, axis=1, norm='l1')
     
     plt.clf()
-    plt.imshow(count)
+    plt.imshow(count, cmap='autumn')
     plt.xlabel('Predicted Class')
     plt.ylabel('Real Class')
     plt.colorbar()      

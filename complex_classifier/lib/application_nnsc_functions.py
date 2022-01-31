@@ -15,6 +15,67 @@ from lib.scipy_fit_functions import get_scipy_pred_dual
 from lib.pole_config_organize import pole_config_organize_abs_dual
 from lib.pole_config_organize import add_zero_imag_parts_dual
 
+def check_inside_bounds_dual(pole_class, pole_params, 
+                        re_max, re_min, im_max, im_min, 
+                        coeff_re_max, coeff_re_min, 
+                        coeff_im_max, coeff_im_min):
+    '''
+    Checks, whether all values in pole_params are within their given bounds
+    
+    pole_class: int = 0-8 
+        The Class of the Pole Configuration  
+        
+    pole_params: ndarray of shape (m,k) or (k,), where k depends on the pole_class (e.g k=6 for pole_class=0)
+        Parameters specifying the pole configuration
+        
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
+        Boundaries
+        
+    returns: ndarray of shape (m,) of Bools
+    '''
+    pole_params = np.atleast_2d(pole_params)
+    
+    max_params = np.array([re_max,im_max, coeff_re_max, coeff_im_max, coeff_re_max, coeff_im_max])
+    min_params = np.array([re_min,im_min,-coeff_re_max,-coeff_im_max,-coeff_re_max,-coeff_im_max])
+    if pole_class in [0,1]:
+        min_params = np.tile(min_params, (1))
+        max_params = np.tile(max_params, (1))
+    elif pole_class in [2,3,4]:
+        min_params = np.tile(min_params, (2))
+        max_params = np.tile(max_params, (2))
+    elif pole_class in [5,6,7,8]:
+        min_params = np.tile(min_params, (3))
+        max_params = np.tile(max_params, (3))
+    else:
+        sys.exit("Undefined label.")    
+        
+    # remove imag parts of real poles    
+    if   pole_class == 0:
+        max_params = max_params[[0,2]]
+        min_params = min_params[[0,2]]
+    elif pole_class == 2:
+        max_params = max_params[[0,2,4,6]]
+        min_params = min_params[[0,2,4,6]]
+    elif pole_class == 3:
+        max_params = max_params[[0,2, 4,5,6,7]]
+        min_params = min_params[[0,2, 4,5,6,7]]
+    elif pole_class == 5:
+        max_params = max_params[[0,2, 4,6, 8,10]]
+        min_params = min_params[[0,2, 4,6, 8,10]]
+    elif pole_class == 6:
+        max_params = max_params[[0,2, 4,6, 8,9,10,11]]
+        min_params = min_params[[0,2, 4,6, 8,9,10,11]]
+    elif pole_class == 7:
+        max_params = max_params[[0,2, 4,5,6,7, 8,9,10,11]]
+        min_params = min_params[[0,2, 4,5,6,7, 8,9,10,11]]
+        
+    m = np.shape(pole_params)[0]
+    max_params = np.tile(max_params, (m,1))
+    min_params = np.tile(min_params, (m,1))
+    
+    inside_bounds = np.all(min_params <= pole_params,axis=1) * np.all(pole_params <= max_params,axis=1)
+    return inside_bounds
+
 def check_inside_bounds(pole_class, pole_params, 
                         re_max, re_min, im_max, im_min, 
                         coeff_re_max, coeff_re_min, 
@@ -25,14 +86,16 @@ def check_inside_bounds(pole_class, pole_params,
     pole_class: int = 0-8 
         The Class of the Pole Configuration  
         
-    pole_params: numpy.ndarray of shape (k,), where k depends on the pole_class (e.g k=4 for pole_class=0)
+    pole_params: ndarray of shape (m,k) or (k,), where k depends on the pole_class (e.g k=4 for pole_class=0)
         Parameters specifying the pole configuration
         
     re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
         Boundaries
         
-    returns: Bool
+    returns: ndarray of shape (m,) of Bools
     '''
+    pole_params = np.atleast_2d(pole_params)
+    
     max_params = np.array([re_max,im_max, coeff_re_max, coeff_im_max, coeff_re_max, coeff_im_max])
     min_params = np.array([re_min,im_min,-coeff_re_max,-coeff_im_max,-coeff_re_max,-coeff_im_max])
     if pole_class in [0,1]:
@@ -67,7 +130,11 @@ def check_inside_bounds(pole_class, pole_params,
         max_params = max_params[[0,2,4, 6,7,8,9,10,11, 12,13,14,15,16,17]]
         min_params = min_params[[0,2,4, 6,7,8,9,10,11, 12,13,14,15,16,17]]
     
-    inside_bounds = np.all(min_params <= pole_params) and np.all(pole_params <= max_params)
+    m = np.shape(pole_params)[0]
+    max_params = np.tile(max_params, (m,1))
+    min_params = np.tile(min_params, (m,1))
+    
+    inside_bounds = np.all(min_params <= pole_params,axis=1) * np.all(pole_params <= max_params,axis=1)
     return inside_bounds
 
 

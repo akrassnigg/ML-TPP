@@ -43,36 +43,36 @@ class PoleDataSet_Regressor(Dataset):
     num_use_data: int
         How many of the available datapoints shall be used?
     """
-    def __init__(self, data_dir, num_use_data):
-        self.data_dir   = data_dir
-
-        self.data_X = np.load(os.path.join(data_dir, 'various_poles_data_regressor_x.npy'), allow_pickle=True).astype('float32')
-        self.data_Y = np.load(os.path.join(data_dir, 'various_poles_data_regressor_y.npy'), allow_pickle=True).astype('float32')
-            
-        print("Checking shape of loaded data: X: ", np.shape(self.data_X))
-        print("Checking shape of loaded data: y: ", np.shape(self.data_Y))
+    def __init__(self, data_dir, test_portion):
+        data_X = np.load(os.path.join(data_dir, 'various_poles_data_regressor_x.npy'), allow_pickle=True).astype('float32')
+        data_Y = np.load(os.path.join(data_dir, 'various_poles_data_regressor_y.npy'), allow_pickle=True).astype('float32')
+       
+        print("Checking shape of loaded data: X: ", np.shape(data_X))
+        print("Checking shape of loaded data: y: ", np.shape(data_Y))
+        self.real_len = len(data_Y)
         
-        if num_use_data ==0:   #use all data available
-            None
-        else:
-            #seed_afterward = np.random.randint(low=0, high=1e3)
-            #np.random.seed(1234)
-            indices = np.arange(len(self.data_Y))
-            np.random.shuffle(indices)
-            indices = indices[0:num_use_data]
-            #np.random.seed(seed_afterward)
-            self.data_X = self.data_X[indices]
-            self.data_Y = self.data_Y[indices]
-            print('Successfully selected a Subset of the Data...')
-            print("Checking shape of data: X Subset: ", np.shape(self.data_X))
-            print("Checking shape of data: y Subset: ", np.shape(self.data_Y))
+        # split off testing data
+        #seed_afterward = np.random.randint(low=0, high=1e3)
+        #np.random.seed(1234)
+        num_data = len(data_Y)
+        indices = np.arange(num_data)
+        np.random.shuffle(indices)
         
+        test_indices      = indices[0:int(num_data*test_portion)]
+        train_val_indices = indices[int(num_data*test_portion):]
+        #np.random.seed(seed_afterward)
+        self.train_val_data_X = data_X[train_val_indices]
+        self.train_val_data_Y = data_Y[train_val_indices]
+        
+        self.test_data_X = data_X[test_indices]
+        self.test_data_Y = data_Y[test_indices]
+  
     def __len__(self):
-        num_of_data_points = len(self.data_X)
+        num_of_data_points = len(self.train_val_data_Y)
         return num_of_data_points
 
     def __getitem__(self, idx):
-        return self.data_X[idx], self.data_Y[idx]
+        return self.train_val_data_X[idx], self.train_val_data_Y[idx]
      
         
 class PoleDataModule_Regressor(pl.LightningDataModule):
@@ -89,43 +89,36 @@ class PoleDataModule_Regressor(pl.LightningDataModule):
     num_use_data: int
         How many of the available datapoints shall be used?
     """
-    def __init__(self, data_dir: str, batch_size: int, train_portion: float, validation_portion: float, test_portion: float,
-                 num_use_data):
+    def __init__(self, data_dir: str, batch_size: int, train_portion: float, validation_portion: float, test_portion: float):
         super().__init__()
         self.data_dir           = data_dir
         self.batch_size         = batch_size
         self.train_portion      = train_portion
         self.validation_portion = validation_portion
         self.test_portion       = test_portion
-        self.num_use_data       = num_use_data
 
     def setup(self, stage):
-        all_data = PoleDataSet_Regressor(data_dir=self.data_dir, 
-                                         num_use_data=self.num_use_data)
+        self.all_data = PoleDataSet_Regressor(data_dir=self.data_dir, test_portion=self.test_portion)
         
-        num_data = len(all_data)
+        num_data = self.all_data.real_len
         print("Length of all_data: ", num_data)
         
-        self.training_number = int(self.train_portion*num_data)
-        self.validation_number = int(self.validation_portion*num_data)
-        self.test_number = int(num_data - self.training_number - self.validation_number)
+        self.test_number       = int(self.test_portion*num_data)
+        self.val_number = int(self.validation_portion*num_data)
+        self.train_number       = int(num_data - self.test_number - self.val_number)      
+        print("Data splits: ", self.train_number, self.val_number, self.test_number, num_data)
         
-        print("Data splits: ", self.training_number, self.validation_number, self.test_number, num_data)
-        train_part, val_part, test_part = random_split(all_data, [self.training_number, self.validation_number, self.test_number]
+        train_part, val_part  = random_split(self.all_data, [self.train_number, self.val_number]
                                                        )#, generator=torch.Generator().manual_seed(1234))
 
         self.train_dataset = train_part
         self.val_dataset = val_part
-        self.test_dataset = test_part
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset,   batch_size=self.batch_size)
-
-    def test_dataloader(self):
-        return DataLoader(self.test_dataset,  batch_size=self.batch_size)
 
     
 ##############################################################################
@@ -216,13 +209,13 @@ class Pole_Regressor(LightningModule):
                  # Path to the folder, where variances and means files shall be stored
                  std_path: str,
                  
+                 # The Integration grid
+                 grid_x,
+                 
                  # Parameter boundaries
                  re_max, re_min, im_max, im_min, 
                  coeff_re_max, coeff_re_min, 
                  coeff_im_max, coeff_im_min,
-                 
-                 # The Integration grid
-                 grid_x,
                  
                  # Specify the loss
                  parameter_loss_type, reconstruction_loss_type,
@@ -261,7 +254,6 @@ class Pole_Regressor(LightningModule):
         self.Parameter_loss_mse      = nn.MSELoss()
         self.Parameter_loss_l1       = nn.L1Loss()
         
-        # prepare boundaries that are applied to ANN output
         self.boundary_setup_finished = False
         
     def losses(self, x, y, y_hat):
@@ -302,63 +294,6 @@ class Pole_Regressor(LightningModule):
         y_hat = self(x)     
         _, _, loss = self.losses(x=x,y=y,y_hat=y_hat)
         self.log('val_loss', loss, on_step=False, on_epoch=True) 
-        return loss
-
-    def test_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        _, _, loss = self.losses(x=x,y=y,y_hat=y_hat)
-        self.log('test_loss', loss, on_step=False, on_epoch=True) 
-        
-        #######################################################################
-        #######################################################################
-        # Log Test losses without std (remove std)
-        # Remove std from x, y and y_hat
-        x     = rm_std_data_torch(data=x, with_mean=False, 
-                                        std_path=self.hparams.std_path, name_var="variances.npy")
-        y     = rm_std_data_torch(data=y, with_mean=True, 
-                                        std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
-        y_hat = rm_std_data_torch(data=y_hat, with_mean=True, 
-                                        std_path=self.hparams.std_path, name_var='variances_params.npy', name_mean='means_params.npy')
-        
-        #Add zero imaginary parts for real poles
-        y     = add_zero_imag_parts_dual_torch(pole_class=self.hparams.pole_class, pole_params=y)
-        y_hat = add_zero_imag_parts_dual_torch(pole_class=self.hparams.pole_class, pole_params=y_hat)
-        # sort poles by abs of position
-        y     = pole_config_organize_abs_dual(pole_class=self.hparams.pole_class, pole_params=y)
-        y_hat = pole_config_organize_abs_dual(pole_class=self.hparams.pole_class, pole_params=y_hat)
-        
-        # Calculate predicted curve
-        x_hat       = pole_curve_calc_torch_dual(pole_class=self.hparams.pole_class, pole_params=y_hat, grid_x=self.hparams.grid_x, device=x.device)   
-        
-        # Parameters RMSE 
-        params_rmse = torch.sqrt(F.mse_loss(y_hat, y)) 
-        self.log('test_params_rmse_nostd', params_rmse, on_step=False, on_epoch=True) 
-        
-        # Parameter_i RMSE 
-        for i in range(y.shape[1]):
-            params_i_rmse = torch.sqrt(F.mse_loss(y_hat[:,i], y[:,i])) 
-            self.log('test_params_{}_rmse_nostd'.format(i), params_i_rmse, on_step=False, on_epoch=True)
-        
-        # Parameters MAE
-        params_mae = F.l1_loss(y_hat, y) 
-        self.log('test_params_mae_nostd', params_mae, on_step=False, on_epoch=True)
-        
-        # Parameter_i MAE
-        for i in range(y.shape[1]):
-            params_i_mae = F.l1_loss(y_hat[:,i], y[:,i]) 
-            self.log('test_params_{}_mae_nostd'.format(i), params_i_mae, on_step=False, on_epoch=True)
-        
-        # Reconstruction MSE
-        reconstruction_mse = F.mse_loss(x_hat, x) 
-        self.log('test_reconstruction_mse_nostd', reconstruction_mse, on_step=False, on_epoch=True)
-        
-        # Reconstruction MAE
-        reconstruction_mae = F.l1_loss(x_hat, x) 
-        self.log('test_reconstruction_mae_nostd', reconstruction_mae, on_step=False, on_epoch=True)
-        #######################################################################
-        #######################################################################
-
         return loss
 
     def configure_optimizers(self):

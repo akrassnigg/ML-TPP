@@ -21,6 +21,7 @@ Classifier:
 3.) Train the classifier by running train_pole_classifier.py. In line 149, you may need to specify which GPU/CPU you want to use (default: gpus=1).
 4.) Apply the classifier to your data using test_data.py (which you will need to adjust to your data, see also 'Q: Where can it be applied?') and application_classifier.py.
 Regressor:
+create data and train for each class
 
 Used programs:
 Python (v. 3.9.7, https://www.python.org/) 

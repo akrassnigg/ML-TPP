@@ -106,11 +106,11 @@ if __name__ == '__main__':
     
     hyperparameters = {**net_hyperparameters, **other_hyperparameters}
     
-    num_runs = num_runs_classifier
     test_accs   = []
     test_losses = []
-    for i in range(num_runs): # average test_acc over multiple runs, if num_runs>1
+    for i in range(num_runs_classifier): # average test_acc over multiple runs, if num_runs>1
         seed_everything(seed=seeds[i])
+        name   = 'classifier_run_' + str(time.time())
     
         #wandb.init(config=hyperparameters,
         #       entity="ml-tpp", project="pole_classifier",
@@ -118,8 +118,7 @@ if __name__ == '__main__':
         #       notes="",
         #       tags = ["Classifier"])
 
-        #logger = WandbLogger() 
-        name   = 'classifier_run_' + str(time.time())
+        #logger = WandbLogger(save_dir=log_dir_regressor, name=name) 
         logger = TensorBoardLogger(log_dir_classifier, name)
     
         model = Pole_Classifier(
@@ -169,10 +168,10 @@ if __name__ == '__main__':
         #wandb.finish()
         
     test_acc_mean        = np.mean(test_accs)
-    test_acc_mean_error  = np.std(test_accs)/np.sqrt(np.size(test_accs))
+    test_acc_mean_error  = np.std(test_accs)/np.sqrt(num_runs_classifier)
     
     # write info about fit(s) to txt file
-    if num_runs > 1:
+    if num_runs_classifier > 1:
         dictionary = repr({
                   'test_acc_mean': test_acc_mean,
                   'test_acc_mean_error': test_acc_mean_error,
@@ -195,6 +194,8 @@ if __name__ == '__main__':
 ###############################################################################
 ###############################################################################
 ###############################################################################
+
+
 
 
 #
