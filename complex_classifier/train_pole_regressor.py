@@ -254,9 +254,9 @@ if __name__ == '__main__':
     else:
         dictionary = repr({
                   'params_overall_rmse': params_overall_rmse,
-                  'params_overall_rmse_std': params_overall_rmse_std,
                   'params_overall_mae': params_overall_mae,
-                  'params_overall_mae_std': params_overall_mae_std,
+                  'params_rmse': params_rmse,
+                  'params_mae': params_mae,
                   'duration': time.time() - time1
                   })
     f = open( 'run_info.txt', 'a' )

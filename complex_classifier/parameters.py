@@ -166,13 +166,13 @@ hidden_dim_6_regressor = hidden_dim_5_regressor
 
 # training hyperparameters
 optimizer_regressor          = 'Adam'
-batch_size_regressor         = 1024
+batch_size_regressor         = 64
 learning_rate_regressor      = 1e-3   
 # maximal number of epochs
 epochs_regressor             = int(1e15)
 val_check_interval_regressor = 0.1
 # early stopping patience
-es_patience_regressor        = 100
+es_patience_regressor        = 5
 
 # loss
 parameter_loss_type       = 'mse'
