@@ -18,6 +18,7 @@ from lib.pole_objective_functions_dual import objective_1r_jac_dual, objective_1
 from lib.pole_objective_functions_dual import objective_2r_jac_dual, objective_1r1c_jac_dual, objective_2c_jac_dual
 from lib.pole_objective_functions_dual import objective_3r_jac_dual, objective_2r1c_jac_dual, objective_1r2c_jac_dual, objective_3c_jac_dual
 from lib.pole_config_organize_dual     import pole_config_organize_abs_dens_dual as pole_config_organize
+from lib.pole_config_organize_dual     import check_inside_bounds_dens_dual
 
 
 def get_scipy_pred_dual(pole_class, grid_x, data_y, 
@@ -58,6 +59,10 @@ def get_scipy_pred_dual(pole_class, grid_x, data_y,
     
     grid_x = np.reshape(grid_x,(-1))
     data_y = np.reshape(data_y,(-1))
+    
+    drop_outside_bounds = with_bounds
+    if method == 'lm':
+        with_bounds = False
              
     def get_p0(lower, upper):
         return np.random.uniform(np.array(lower), np.array(upper))
@@ -127,16 +132,28 @@ def get_scipy_pred_dual(pole_class, grid_x, data_y,
                     p0_new = get_p0(lower, upper)
                     params_tmp, _ = curve_fit(objective_3c_dual, grid_x, data_y, maxfev=maxfev_i, bounds=(lower, upper), p0=p0_new, jac=objective_3c_jac_dual, xtol=xtol, method=method) if with_bounds else \
                                   curve_fit(objective_3c_dual, grid_x, data_y, maxfev=maxfev_i, p0=p0_new, jac=objective_3c_jac_dual, xtol=xtol, method=method)
+            
+                if drop_outside_bounds: # Check if the fitted parameters are inside bounds (only relevant for 'lm')
+                    in_bounds = check_inside_bounds_dens_dual(pole_class, params_tmp, 
+                                            re_max, re_min, im_max, im_min, 
+                                            coeff_re_max, coeff_re_min, 
+                                            coeff_im_max, coeff_im_min)[0]
+                    if not in_bounds:
+                        params_tmp = np.array([np.nan for i in range(len(lower))])
+            
             except:
                 params_tmp = np.array([np.nan for i in range(len(lower))])
-                    
+                        
             if ~np.isnan(params_tmp[0]):    # If the fit worked, break the retry loop
                 break
         if ~np.isnan(params_tmp[0]):    # If the fit worked, break the retry loop
             break
     
     if np.isnan(params_tmp[0]):   
-        print('Fit failed! Try a higher value for "maxfev", "xtol" or "num_tries".')      
+        if method == 'lm' and drop_outside_bounds:
+            print('Fit failed... For method="lm" and with_bounds=True, this is probably since the fit did not converge inside the bounds.')
+        else:
+            print('Fit failed! Try a higher value for "maxfev", "xtol" or "num_tries".')      
     params_tmp = pole_config_organize(pole_class=pole_class, pole_params=params_tmp.reshape(1,-1)).reshape(-1) 
     return params_tmp
 

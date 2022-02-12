@@ -21,7 +21,10 @@ Classifier:
 3.) Train the classifier by running train_pole_classifier.py. In line 149, you may need to specify which GPU/CPU you want to use (default: gpus=1).
 4.) Apply the classifier to your data using test_data.py (which you will need to adjust to your data, see also 'Q: Where can it be applied?') and application_classifier.py.
 Regressor:
-create data and train for each class
+1.) Set class_regressor in parameters.py to the value predicted by the classifier(s) and specify the remaining hyperparameters.
+2.) Create data, train and apply the regressor with the corresponding files (the ones that contain the word "regressor" in their names).
+SciPy:
+1.) Use test_data.py and application_scipy_lm.py to apply SciPy's curve_fit function with the lm method onto your data.
 
 Used programs:
 Python (v. 3.9.7, https://www.python.org/) 

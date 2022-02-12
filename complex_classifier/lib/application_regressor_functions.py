@@ -43,13 +43,13 @@ def get_regressor_pred(data_y, model_path):
         model = Pole_Regressor.load_from_checkpoint(os.path.join(model_path, 'models/', filename))
         model.eval()
         pred = model(torch.from_numpy(data_y.astype('float32')))
-        params_pred.append( pred.detach().numpy() )
+        pred = pred.detach().numpy()
+        # Remove standardization from output
+        pred = rm_std_data(data=pred, std_path= os.path.join(model_path, 'data/'), 
+                                   with_mean=True, name_var="variances_params.npy", name_mean="means_params.npy")
+        params_pred.append( pred )
         del model
     params_pred = np.array(params_pred)
-        
-    # Remove standardization from output
-    params_pred = rm_std_data(data=params_pred, std_path= os.path.join(model_path, 'data/'), 
-                               with_mean=True, name_var="variances_params.npy", name_mean="means_params.npy")#[0]
     return params_pred
 
 

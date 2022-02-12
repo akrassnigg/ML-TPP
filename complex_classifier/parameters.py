@@ -113,7 +113,7 @@ drop_prob_5_classifier  = 0.0
 drop_prob_6_classifier  = 0.0   
 
 # do multiple runs?
-num_runs_classifier     = 1
+num_runs_classifier     = 5
 
 ##############################################################################
 ##############   Regressors   ################################################
@@ -157,7 +157,7 @@ architecture_regressor = 'FC6'
 out_list               = [3,6, 6,9,12, 9,12,15,18]
 out_features_regressor = out_list[class_regressor]  # depends on the pole class
 in_features_regressor  = len(standard_re)*2
-hidden_dim_1_regressor = 32
+hidden_dim_1_regressor = 256
 hidden_dim_2_regressor = hidden_dim_1_regressor
 hidden_dim_3_regressor = hidden_dim_2_regressor
 hidden_dim_4_regressor = hidden_dim_3_regressor
@@ -166,13 +166,15 @@ hidden_dim_6_regressor = hidden_dim_5_regressor
 
 # training hyperparameters
 optimizer_regressor          = 'Adam'
-batch_size_regressor         = 64
+batch_size_regressor         = 4096
 learning_rate_regressor      = 1e-3   
-# maximal number of epochs
-epochs_regressor             = int(1e15)
-val_check_interval_regressor = 0.1
+# maximal number of training epochs
+epochs_regressor             = 1000
+# maximal number of training steps
+max_steps_regressor          = None
+val_check_interval_regressor = 1.0
 # early stopping patience
-es_patience_regressor        = 5
+es_patience_regressor        = int(1e15)
 
 # loss
 parameter_loss_type       = 'mse'

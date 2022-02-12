@@ -8,6 +8,7 @@ Functions, that organize pole configurations
 
 """
 import numpy as np
+import sys
 
 
 def pole_config_organize_abs_dens_single(pole_class, pole_params):
@@ -448,6 +449,96 @@ def add_zero_imag_parts_single(pole_class, pole_params):
     return pole_params
 
 
+def check_inside_bounds_single(pole_class, pole_params, 
+                        re_max, re_min, im_max, im_min, 
+                        coeff_re_max, coeff_re_min, 
+                        coeff_im_max, coeff_im_min):
+    '''
+    Checks, whether all values in pole_params are within their given bounds
+        
+    "_single" means, that this function deals with only 1 pole config
 
+    pole_class: int = 0-8 
+        The Class of the Pole Configuration  
+        
+    pole_params: ndarray of shape (m,k) or (k,), where k depends on the pole_class (e.g k=4 for pole_class=0)
+        Parameters specifying the pole configuration
+        
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
+        Boundaries
+        
+    returns: ndarray of shape (m,) of Bools
+    '''
+    pole_params = np.atleast_2d(pole_params)
+    
+    max_params = np.array([re_max,im_max, coeff_re_max, coeff_im_max])
+    min_params = np.array([re_min,im_min,-coeff_re_max,-coeff_im_max])
+    if pole_class in [0,1]:
+        min_params = np.tile(min_params, (1))
+        max_params = np.tile(max_params, (1))
+    elif pole_class in [2,3,4]:
+        min_params = np.tile(min_params, (2))
+        max_params = np.tile(max_params, (2))
+    elif pole_class in [5,6,7,8]:
+        min_params = np.tile(min_params, (3))
+        max_params = np.tile(max_params, (3))
+    else:
+        sys.exit("Undefined label.")    
+        
+    m = np.shape(pole_params)[0]
+    max_params = np.tile(max_params, (m,1))
+    min_params = np.tile(min_params, (m,1))
+
+    inside_bounds = np.all(min_params <= pole_params,axis=1) * np.all(pole_params <= max_params,axis=1)
+    return inside_bounds
+
+
+def check_inside_bounds_dens_single(pole_class, pole_params, 
+                        re_max, re_min, im_max, im_min, 
+                        coeff_re_max, coeff_re_min, 
+                        coeff_im_max, coeff_im_min):
+    '''
+    Checks, whether all values in pole_params are within their given bounds
+         
+    "_single" means, that this function deals with only 1 pole config
+    
+    "_dens" means, that this function deals with pole configs, where the imaginary parts of real poles have been removed (Without '_dens' in the name these imaginary parts are kept in and are set to zero.) 
+       
+    pole_class: int = 0-8 
+        The Class of the Pole Configuration  
+        
+    pole_params: ndarray of shape (m,k) or (k,), where k depends on the pole_class (e.g k=2 for pole_class=0)
+        Parameters specifying the pole configuration
+        
+    re_max, re_min, im_max, im_min, coeff_re_max, coeff_re_min, coeff_im_max, coeff_im_min: numeric
+        Boundaries
+        
+    returns: ndarray of shape (m,) of Bools
+    '''
+    pole_params = np.atleast_2d(pole_params)
+
+    max_params = np.array([re_max,im_max, coeff_re_max, coeff_im_max])
+    min_params = np.array([re_min,im_min,-coeff_re_max,-coeff_im_max])
+    if pole_class in [0,1]:
+        min_params = np.tile(min_params, (1))
+        max_params = np.tile(max_params, (1))
+    elif pole_class in [2,3,4]:
+        min_params = np.tile(min_params, (2))
+        max_params = np.tile(max_params, (2))
+    elif pole_class in [5,6,7,8]:
+        min_params = np.tile(min_params, (3))
+        max_params = np.tile(max_params, (3))
+    else:
+        sys.exit("Undefined label.")    
+        
+    m = np.shape(pole_params)[0]
+    max_params = np.tile(max_params, (m,1))
+    min_params = np.tile(min_params, (m,1))
+
+    max_params = remove_zero_imag_parts_single(pole_class=pole_class, pole_params=max_params)
+    min_params = remove_zero_imag_parts_single(pole_class=pole_class, pole_params=min_params)
+
+    inside_bounds = np.all(min_params <= pole_params,axis=1) * np.all(pole_params <= max_params,axis=1)
+    return inside_bounds
 
 

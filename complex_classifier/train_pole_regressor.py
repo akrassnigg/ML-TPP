@@ -40,6 +40,7 @@ from parameters import class_regressor
 from parameters import parameter_loss_type, reconstruction_loss_type
 from parameters import parameter_loss_coeff, reconstruction_loss_coeff
 from parameters import loss_name_regressor
+from parameters import max_steps_regressor
 
 
 ##############################################################################
@@ -113,7 +114,8 @@ if __name__ == '__main__':
                 val_check_interval      = val_check_interval_regressor,
                 es_patience             = es_patience_regressor,
                 
-                loss_name_regressor     = loss_name_regressor
+                loss_name_regressor     = loss_name_regressor,
+                max_steps_regressor     = max_steps_regressor
 		)
     
     hyperparameters = {**net_hyperparameters, **other_hyperparameters}
@@ -126,14 +128,14 @@ if __name__ == '__main__':
         seed_everything(seed=seeds[i])
         name   = 'classifier_run_' + str(time.time())
         
-        wandb.init(config=hyperparameters,
-                   entity="ml-tpp", project="pole_classifier",
-                   group="",
-                   notes="",
-                   tags = ["Regressor"])
+        #wandb.init(config=hyperparameters,
+        #           entity="ml-tpp", project="pole_classifier",
+        #           group="",
+        #           notes="",
+        #           tags = ["Regressor"])
 
-        logger = WandbLogger(save_dir=log_dir_regressor, name=name) 
-        #logger = TensorBoardLogger(save_dir=log_dir_regressor, name=name)    
+        #logger = WandbLogger(save_dir=log_dir_regressor, name=name) 
+        logger = TensorBoardLogger(save_dir=log_dir_regressor, name=name)    
 
         model = Pole_Regressor(
                     **net_hyperparameters
@@ -159,6 +161,7 @@ if __name__ == '__main__':
             val_check_interval=val_check_interval_regressor,
             callbacks=[checkpoint_callback1, early_stop_callback],
             max_epochs=epochs_regressor,
+            max_steps = max_steps_regressor,
             gpus=1
         )
     
@@ -221,7 +224,7 @@ if __name__ == '__main__':
         #######################################################################
         #######################################################################
 
-        wandb.finish()
+        #wandb.finish()
        
     params_overall_rmse     = np.mean(test_params_rmse_list)
     params_overall_rmse_std = np.std(test_params_rmse_list)/np.sqrt(num_runs_regressor)
